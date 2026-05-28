@@ -45,7 +45,7 @@ pub fn[CSym, RSym] command_names(
   commands : Commands[CSym, RSym],
   name : (CSym) -> String,
 ) -> Array[(String, Int)] {
-  let counts : Map[String, Int] = Map::new()
+  let counts : Map[String, Int] = Map([])
   for command in commands.commands {
     let command_name = name(command.command)
     counts[command_name] = counts.get_or_default(command_name, 0) + 1

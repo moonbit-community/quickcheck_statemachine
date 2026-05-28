@@ -28,23 +28,17 @@ enum JugResponse {
 ///|
 fn jug_next(model : JugModel, command : JugCommand) -> JugModel {
   match command {
-    JugFillBig => JugModel::{ big_jug: 5, small_jug: model.small_jug }
-    JugFillSmall => JugModel::{ big_jug: model.big_jug, small_jug: 3 }
-    JugEmptyBig => JugModel::{ big_jug: 0, small_jug: model.small_jug }
-    JugEmptySmall => JugModel::{ big_jug: model.big_jug, small_jug: 0 }
+    JugFillBig => { big_jug: 5, small_jug: model.small_jug }
+    JugFillSmall => { big_jug: model.big_jug, small_jug: 3 }
+    JugEmptyBig => { big_jug: 0, small_jug: model.small_jug }
+    JugEmptySmall => { big_jug: model.big_jug, small_jug: 0 }
     JugSmallIntoBig => {
       let big_jug = (model.big_jug + model.small_jug).min(5)
-      JugModel::{
-        big_jug,
-        small_jug: model.small_jug - (big_jug - model.big_jug),
-      }
+      { big_jug, small_jug: model.small_jug - (big_jug - model.big_jug) }
     }
     JugBigIntoSmall => {
       let small_jug = (model.big_jug + model.small_jug).min(3)
-      JugModel::{
-        big_jug: model.big_jug - (small_jug - model.small_jug),
-        small_jug,
-      }
+      { big_jug: model.big_jug - (small_jug - model.small_jug), small_jug }
     }
   }
 }
@@ -91,8 +85,8 @@ fn jug_solution_spec() -> @quickcheck_statemachine.StateMachine[
   ]
   let cursor : Array[Int] = [0]
   @quickcheck_statemachine.StateMachine::new(
-    init_symbolic_model=() => JugModel::{ big_jug: 0, small_jug: 0 },
-    init_concrete_model=() => JugModel::{ big_jug: 0, small_jug: 0 },
+    init_symbolic_model=() => { big_jug: 0, small_jug: 0 },
+    init_concrete_model=() => { big_jug: 0, small_jug: 0 },
     init_system=() => (),
     generator=(model, size, rng) => {
       ignore(model)
@@ -173,7 +167,7 @@ test "die hard jug reports the 4 liter solution" {
   )
   guard result
     is Err(
-      @quickcheck_statemachine.RunFailure::PostconditionFailed(
+      PostconditionFailed(
         step_index~,
         command~,
         response~,

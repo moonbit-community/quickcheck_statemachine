@@ -28,8 +28,8 @@ pub fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] shrink_and_validate(
   commands : Commands[CSym, RSym],
 ) -> Commands[CSym, RSym]? {
   let rebuilt : Array[Command[CSym, RSym]] = []
-  for index = 0, model = (spec.init_symbolic_model)(), gen_sym = GenSym::new(), scope = Map::new(); index <
-     commands.commands.length(); {
+  for index = 0, model = (spec.init_symbolic_model)(), gen_sym = GenSym::new(), scope = Map([],
+        ); index < commands.commands.length(); {
     let old = commands.commands[index]
     match (spec.remap_command)(old.command, scope) {
       None => break None
@@ -61,7 +61,7 @@ pub fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] shrink_and_validate(
       }
     }
   } nobreak {
-    Some(Commands::{ commands: rebuilt })
+    Some({ commands: rebuilt })
   }
 }
 
@@ -76,7 +76,7 @@ fn[CSym, RSym] without_index(
       next.push(command)
     }
   }
-  Commands::{ commands: next }
+  { commands: next }
 }
 
 ///|
@@ -87,7 +87,7 @@ fn[CSym, RSym] replace_index(
 ) -> Commands[CSym, RSym] {
   let next = commands.commands.copy()
   next[index] = command
-  Commands::{ commands: next }
+  { commands: next }
 }
 
 ///|

@@ -126,12 +126,12 @@ enum FsSymResponse {
 
 ///|
 fn fs_dir(parts : Array[String]) -> FsDir {
-  FsDir::{ parts, }
+  { parts, }
 }
 
 ///|
 fn fs_file(dir : FsDir, name : String) -> FsFile {
-  FsFile::{ dir, name }
+  { dir, name }
 }
 
 ///|
@@ -141,22 +141,17 @@ fn fs_root_dir() -> FsDir {
 
 ///|
 fn fs_empty_model() -> FsModel {
-  FsModel::{ dirs: [fs_root_dir()], files: [], handles: [], next_handle: 0 }
+  { dirs: [fs_root_dir()], files: [], handles: [], next_handle: 0 }
 }
 
 ///|
 fn fs_empty_sym_model() -> FsSymModel {
-  FsSymModel::{
-    dirs: [fs_root_dir()],
-    files: [],
-    handles: [],
-    created_handles: [],
-  }
+  { dirs: [fs_root_dir()], files: [], handles: [], created_handles: [] }
 }
 
 ///|
 fn fs_new_system() -> FsSystem {
-  FsSystem::{ dirs: [fs_root_dir()], files: [], handles: [], next_handle: 0 }
+  { dirs: [fs_root_dir()], files: [], handles: [], next_handle: 0 }
 }
 
 ///|
@@ -182,7 +177,7 @@ fn fs_parent_dir(dir : FsDir) -> FsDir? {
     for i in 0..<(len - 1) {
       parts.push(dir.parts[i])
     }
-    Some(FsDir::{ parts, })
+    Some({ parts, })
   }
 }
 
@@ -283,8 +278,8 @@ fn fs_write_file(
 ) -> Array[FsFileEntry] {
   let next = files.copy()
   match fs_file_index(next, file) {
-    Some(index) => next[index] = FsFileEntry::{ file, content }
-    None => next.push(FsFileEntry::{ file, content })
+    Some(index) => next[index] = { file, content }
+    None => next.push({ file, content })
   }
   next
 }
@@ -328,7 +323,7 @@ fn fs_model_mkdir(model : FsModel, dir : FsDir) -> (FsResponse, FsModel) {
     dirs.push(dir)
     (
       FsSucceeded(FsUnit),
-      FsModel::{
+      {
         dirs,
         files: model.files,
         handles: model.handles,
@@ -347,14 +342,14 @@ fn fs_model_open(model : FsModel, file : FsFile) -> (FsResponse, FsModel) {
   } else {
     let files = model.files.copy()
     if fs_file_index(files, file) is None {
-      files.push(FsFileEntry::{ file, content: "" })
+      files.push({ file, content: "" })
     }
     let handle = model.next_handle
     let handles = model.handles.copy()
-    handles.push(FsOpenEntry::{ handle, file })
+    handles.push({ handle, file })
     (
       FsSucceeded(FsHandle(handle)),
-      FsModel::{ dirs: model.dirs, files, handles, next_handle: handle + 1 },
+      { dirs: model.dirs, files, handles, next_handle: handle + 1 },
     )
   }
 }
@@ -371,7 +366,7 @@ fn fs_model_write(
       let files = fs_write_file(model.files, model.handles[index].file, content)
       (
         FsSucceeded(FsUnit),
-        FsModel::{
+        {
           dirs: model.dirs,
           files,
           handles: model.handles,
@@ -389,7 +384,7 @@ fn fs_model_close(model : FsModel, handle : Int) -> (FsResponse, FsModel) {
     Some(_) =>
       (
         FsSucceeded(FsUnit),
-        FsModel::{
+        {
           dirs: model.dirs,
           files: model.files,
           handles: fs_remove_open(model.handles, handle),
@@ -442,11 +437,11 @@ fn fs_system_open(system : FsSystem, file : FsFile) -> FsResponse {
     FsFailed(FsBusy)
   } else {
     if fs_file_index(system.files, file) is None {
-      system.files.push(FsFileEntry::{ file, content: "" })
+      system.files.push({ file, content: "" })
     }
     let handle = system.next_handle
     system.next_handle += 1
-    system.handles.push(FsOpenEntry::{ handle, file })
+    system.handles.push({ handle, file })
     FsSucceeded(FsHandle(handle))
   }
 }
@@ -462,15 +457,11 @@ fn fs_system_write(
     Some(index) => {
       match fs_file_index(system.files, system.handles[index].file) {
         Some(file_index) =>
-          system.files[file_index] = FsFileEntry::{
+          system.files[file_index] = {
             file: system.handles[index].file,
             content,
           }
-        None =>
-          system.files.push(FsFileEntry::{
-            file: system.handles[index].file,
-            content,
-          })
+        None => system.files.push({ file: system.handles[index].file, content })
       }
       FsSucceeded(FsUnit)
     }
@@ -595,13 +586,13 @@ fn fs_sym_write(
   handle : @quickcheck_statemachine.Ref[FsConcreteValue],
 ) -> FsSymResponse {
   match handle {
-    @quickcheck_statemachine.Ref::Symbolic(var_ref) =>
+    Symbolic(var_ref) =>
       if fs_sym_open_index(model.handles, var_ref) is Some(_) {
         FsSymSucceeded(FsSymUnit)
       } else {
         FsSymFailed(FsHandleClosed)
       }
-    @quickcheck_statemachine.Ref::Concrete(_) => FsSymSucceeded(FsSymUnit)
+    Concrete(_) => FsSymSucceeded(FsSymUnit)
   }
 }
 
@@ -655,7 +646,7 @@ fn fs_sym_transition(
     (FsSymMkDir(dir), FsSymSucceeded(FsSymUnit)) => {
       let dirs = model.dirs.copy()
       dirs.push(dir)
-      FsSymModel::{
+      {
         dirs,
         files: model.files,
         handles: model.handles,
@@ -665,18 +656,15 @@ fn fs_sym_transition(
     (FsSymOpen(file), FsSymSucceeded(FsSymHandle(handle))) => {
       let files = model.files.copy()
       if fs_file_index(files, file) is None {
-        files.push(FsFileEntry::{ file, content: "" })
+        files.push({ file, content: "" })
       }
       let handles = model.handles.copy()
-      handles.push(FsSymOpenEntry::{ handle, file })
+      handles.push({ handle, file })
       let created_handles = model.created_handles.copy()
       created_handles.push(handle)
-      FsSymModel::{ dirs: model.dirs, files, handles, created_handles }
+      { dirs: model.dirs, files, handles, created_handles }
     }
-    (
-      FsSymWrite(@quickcheck_statemachine.Ref::Symbolic(handle), content),
-      FsSymSucceeded(FsSymUnit),
-    ) =>
+    (FsSymWrite(Symbolic(handle), content), FsSymSucceeded(FsSymUnit)) =>
       match fs_sym_open_index(model.handles, handle) {
         None => model
         Some(index) => {
@@ -685,7 +673,7 @@ fn fs_sym_transition(
             model.handles[index].file,
             content,
           )
-          FsSymModel::{
+          {
             dirs: model.dirs,
             files,
             handles: model.handles,
@@ -693,11 +681,8 @@ fn fs_sym_transition(
           }
         }
       }
-    (
-      FsSymClose(@quickcheck_statemachine.Ref::Symbolic(handle)),
-      FsSymSucceeded(FsSymUnit),
-    ) =>
-      FsSymModel::{
+    (FsSymClose(Symbolic(handle)), FsSymSucceeded(FsSymUnit)) =>
+      {
         dirs: model.dirs,
         files: model.files,
         handles: fs_sym_remove_open(model.handles, handle),
@@ -720,11 +705,9 @@ fn fs_sym_precondition(
   command : FsSymCommand,
 ) -> @quickcheck_statemachine.Logic {
   let ok = match command {
-    FsSymWrite(@quickcheck_statemachine.Ref::Symbolic(handle), _)
-    | FsSymClose(@quickcheck_statemachine.Ref::Symbolic(handle)) =>
+    FsSymWrite(Symbolic(handle), _) | FsSymClose(Symbolic(handle)) =>
       fs_sym_handle_created(model, handle)
-    FsSymWrite(@quickcheck_statemachine.Ref::Concrete(_), _)
-    | FsSymClose(@quickcheck_statemachine.Ref::Concrete(_)) => true
+    FsSymWrite(Concrete(_), _) | FsSymClose(Concrete(_)) => true
     FsSymMkDir(_) | FsSymOpen(_) | FsSymRead(_) => true
   }
   @quickcheck_statemachine.Logic::predicate(
@@ -749,8 +732,8 @@ fn fs_reify_ref(
   environment : @quickcheck_statemachine.Environment[FsConcreteValue],
 ) -> Result[Int, @quickcheck_statemachine.EnvError] {
   match handle {
-    @quickcheck_statemachine.Ref::Concrete(FsHandleValue(value)) => Ok(value)
-    @quickcheck_statemachine.Ref::Symbolic(var_ref) =>
+    Concrete(FsHandleValue(value)) => Ok(value)
+    Symbolic(var_ref) =>
       match environment.lookup(var_ref) {
         Ok(FsHandleValue(value)) => Ok(value)
         Err(error) => Err(error)
@@ -793,11 +776,7 @@ fn fs_bind_response(
     (FsSymSucceeded(FsSymHandle(var_ref)), FsSucceeded(FsHandle(handle))) =>
       Ok(environment.insert(var_ref, FsHandleValue(handle)))
     (FsSymSucceeded(FsSymHandle(_)), _) =>
-      Err(
-        @quickcheck_statemachine.BindError::BindMessage(
-          "expected concrete handle",
-        ),
-      )
+      Err(BindMessage("expected concrete handle"))
     _ => Ok(environment)
   }
 }
@@ -808,12 +787,11 @@ fn fs_remap_ref(
   scope : Map[@quickcheck_statemachine.Var, @quickcheck_statemachine.Var],
 ) -> @quickcheck_statemachine.Ref[FsConcreteValue]? {
   match handle {
-    @quickcheck_statemachine.Ref::Concrete(value) =>
-      Some(@quickcheck_statemachine.Ref::Concrete(value))
-    @quickcheck_statemachine.Ref::Symbolic(var_ref) =>
+    Concrete(value) => Some(Concrete(value))
+    Symbolic(var_ref) =>
       match scope.get(var_ref) {
         None => None
-        Some(next_var) => Some(@quickcheck_statemachine.Ref::Symbolic(next_var))
+        Some(next_var) => Some(Symbolic(next_var))
       }
   }
 }
@@ -929,7 +907,7 @@ fn fs_script_spec(
 
 ///|
 fn symbolic_handle(id : Int) -> @quickcheck_statemachine.Ref[FsConcreteValue] {
-  @quickcheck_statemachine.Ref::Symbolic(@quickcheck_statemachine.Var::{ id, })
+  Symbolic({ id, })
 }
 
 ///|
@@ -1018,15 +996,7 @@ test "qsm blog precondition rejects handles that were never created" {
   )
   guard result
     is Err(
-      @quickcheck_statemachine.RunFailure::GenerationFailed(
-        failure=@quickcheck_statemachine.GenerationFailure::Deadlock(
-          step_index~,
-          model~,
-          commands~,
-          ..
-        ),
-        ..
-      )
+      GenerationFailed(failure=Deadlock(step_index~, model~, commands~, ..), ..)
     ) else {
     fail("expected unknown handle to exhaust generation attempts")
   }
@@ -1080,7 +1050,7 @@ test "qsm blog filesystem catches missing busy read check" {
   )
   guard result
     is Err(
-      @quickcheck_statemachine.RunFailure::PostconditionFailed(
+      PostconditionFailed(
         step_index~,
         command~,
         response~,

@@ -11,5 +11,6 @@ test "labelling helpers collect coverage diagnostics" {
     [("open", 2), ("close", 1)],
     ["open", "read"],
   )
-  assert_eq(missing, ["read"])
+  assert_eq(missing.length(), 1)
+  assert_eq(missing[0], "read")
 }

@@ -17,7 +17,7 @@ pub(all) struct Environment[V] {
 
 ///|
 pub fn[V] Environment::empty() -> Environment[V] {
-  Environment::{ bindings: Map::new() }
+  { bindings: Map([]) }
 }
 
 ///|
@@ -28,7 +28,7 @@ pub fn[V] Environment::insert(
 ) -> Environment[V] {
   let bindings = self.bindings.copy()
   bindings[variable] = value
-  Environment::{ bindings, }
+  { bindings, }
 }
 
 ///|
@@ -64,7 +64,7 @@ pub fn[V] Environment::merge(
     }
     bindings[variable] = value
   }
-  Ok(Environment::{ bindings, })
+  Ok({ bindings, })
 }
 
 ///|

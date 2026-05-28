@@ -21,7 +21,7 @@ pub(all) struct GenSym {
 
 ///|
 pub fn GenSym::new() -> GenSym {
-  GenSym::{ next: 0 }
+  { next: 0 }
 }
 
 ///|

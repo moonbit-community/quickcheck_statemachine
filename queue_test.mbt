@@ -50,7 +50,7 @@ fn CircularQueue::new(capacity : Int) -> CircularQueue {
   for _ in 0..<(capacity + 1) {
     slots.push(0)
   }
-  CircularQueue::{ slots, input: 0, output: 0 }
+  { slots, input: 0, output: 0 }
 }
 
 ///|
@@ -118,7 +118,7 @@ fn array_tail(xs : Array[Int]) -> Array[Int] {
 fn queue_update(model : QueueState, id : Int, queue : QueueModel) -> QueueState {
   let queues = model.queues.copy()
   queues[id] = queue
-  QueueState::{ queues, }
+  { queues, }
 }
 
 ///|
@@ -126,18 +126,18 @@ fn queue_transition(model : QueueState, command : QueueCommand) -> QueueState {
   match command {
     QueueNew(capacity) => {
       let queues = model.queues.copy()
-      queues.push(QueueModel::{ elems: [], capacity })
-      QueueState::{ queues, }
+      queues.push({ elems: [], capacity })
+      { queues, }
     }
     QueuePut(id, item) => {
       let queue = model.queues[id]
       let elems = queue.elems.copy()
       elems.push(item)
-      queue_update(model, id, QueueModel::{ elems, capacity: queue.capacity })
+      queue_update(model, id, { elems, capacity: queue.capacity })
     }
     QueueGet(id) => {
       let queue = model.queues[id]
-      queue_update(model, id, QueueModel::{
+      queue_update(model, id, {
         elems: array_tail(queue.elems),
         capacity: queue.capacity,
       })
@@ -200,9 +200,9 @@ fn queue_base_spec(
   QueueSystem,
 ] {
   @quickcheck_statemachine.StateMachine::new(
-    init_symbolic_model=() => QueueState::{ queues: [] },
-    init_concrete_model=() => QueueState::{ queues: [] },
-    init_system=() => QueueSystem::{ queues: [] },
+    init_symbolic_model=() => { queues: [] },
+    init_concrete_model=() => { queues: [] },
+    init_system=() => { queues: [] },
     generator~,
     mock=(model, command, gen_sym) => (queue_expected(model, command), gen_sym),
     transition_symbolic=(model, command, response) => {
@@ -299,15 +299,7 @@ test "queue full command is rejected by precondition" {
   )
   guard result
     is Err(
-      @quickcheck_statemachine.RunFailure::GenerationFailed(
-        failure=@quickcheck_statemachine.GenerationFailure::Deadlock(
-          step_index~,
-          model~,
-          commands~,
-          ..
-        ),
-        ..
-      )
+      GenerationFailed(failure=Deadlock(step_index~, model~, commands~, ..), ..)
     ) else {
     fail("expected queue full generation failure")
   }

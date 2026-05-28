@@ -440,7 +440,7 @@ pub fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] run_commands(
                     ),
                   )
                 } else {
-                  Ok(RunReport::{
+                  Ok({
                     seed: config.seed,
                     cases_run: 1,
                     commands_run: commands.length(),
@@ -539,7 +539,7 @@ pub fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] check(
       } nobreak {
         match last_report {
           Some(report) =>
-            Ok(RunReport::{
+            Ok({
               seed: config.seed,
               cases_run: config.cases,
               commands_run,
@@ -551,7 +551,7 @@ pub fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] check(
               shrink_rounds: 0,
             })
           None =>
-            Ok(RunReport::{
+            Ok({
               seed: config.seed,
               cases_run: config.cases,
               commands_run,

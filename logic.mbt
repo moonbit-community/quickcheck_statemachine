@@ -117,7 +117,7 @@ fn logic_failure_messages(logic : Logic) -> Array[String] {
 
 ///|
 pub fn Logic::counterexample(self : Logic) -> Counterexample {
-  Counterexample::{ messages: logic_failure_messages(self) }
+  { messages: logic_failure_messages(self) }
 }
 
 ///|

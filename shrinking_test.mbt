@@ -96,31 +96,27 @@ fn shrink_spec() -> @quickcheck_statemachine.StateMachine[
     precondition=(model, command) => {
       let ok = match command {
         ShrinkNew => true
-        ShrinkUse(@quickcheck_statemachine.Ref::Symbolic(handle)) =>
-          shrink_ref_known(model, handle)
-        ShrinkUse(@quickcheck_statemachine.Ref::Concrete(_)) => true
+        ShrinkUse(Symbolic(handle)) => shrink_ref_known(model, handle)
+        ShrinkUse(Concrete(_)) => true
       }
       @quickcheck_statemachine.Logic::boolean(ok)
     },
     remap_command=(command, scope) => {
       match command {
         ShrinkNew => Some(ShrinkNew)
-        ShrinkUse(@quickcheck_statemachine.Ref::Symbolic(handle)) =>
+        ShrinkUse(Symbolic(handle)) =>
           match scope.get(handle) {
-            Some(next) =>
-              Some(ShrinkUse(@quickcheck_statemachine.Ref::Symbolic(next)))
+            Some(next) => Some(ShrinkUse(Symbolic(next)))
             None => None
           }
-        ShrinkUse(@quickcheck_statemachine.Ref::Concrete(value)) =>
-          Some(ShrinkUse(@quickcheck_statemachine.Ref::Concrete(value)))
+        ShrinkUse(Concrete(value)) => Some(ShrinkUse(Concrete(value)))
       }
     },
     reify_command=(command, environment) => {
       match command {
         ShrinkNew => Ok(ShrinkConcreteNew)
-        ShrinkUse(@quickcheck_statemachine.Ref::Concrete(value)) =>
-          Ok(ShrinkConcreteUse(value))
-        ShrinkUse(@quickcheck_statemachine.Ref::Symbolic(handle)) =>
+        ShrinkUse(Concrete(value)) => Ok(ShrinkConcreteUse(value))
+        ShrinkUse(Symbolic(handle)) =>
           match environment.lookup(handle) {
             Ok(value) => Ok(ShrinkConcreteUse(value))
             Err(error) => Err(error)
@@ -154,16 +150,8 @@ test "shrinking rejects candidates with dangling symbolic refs" {
   let v0 = @quickcheck_statemachine.Var::{ id: 0 }
   let commands = @quickcheck_statemachine.Commands::{
     commands: [
-      @quickcheck_statemachine.Command::{
-        command: ShrinkNew,
-        response: ShrinkNewed(v0),
-        vars: [v0],
-      },
-      @quickcheck_statemachine.Command::{
-        command: ShrinkUse(@quickcheck_statemachine.Ref::Symbolic(v0)),
-        response: ShrinkUsed,
-        vars: [],
-      },
+      { command: ShrinkNew, response: ShrinkNewed(v0), vars: [v0] },
+      { command: ShrinkUse(Symbolic(v0)), response: ShrinkUsed, vars: [] },
     ],
   }
   let candidates = @quickcheck_statemachine.shrink_commands_once(

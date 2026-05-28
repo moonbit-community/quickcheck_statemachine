@@ -14,7 +14,7 @@ fn case_config(
   required_labels? : Array[String] = [],
   required_command_names? : Array[String] = [],
 ) -> @quickcheck_statemachine.RunConfig {
-  @quickcheck_statemachine.RunConfig::{
+  {
     seed: 20240702,
     cases,
     max_commands,
@@ -117,7 +117,7 @@ fn counter_script_spec(
   @quickcheck_statemachine.StateMachine::new(
     init_symbolic_model=() => 0,
     init_concrete_model=() => 0,
-    init_system=() => CounterSystem::{ value: 0 },
+    init_system=() => { value: 0 },
     generator=(model, size, rng) => {
       ignore(model)
       ignore(size)
@@ -208,7 +208,7 @@ test "counter catches value 42 increment bug" {
   )
   guard result
     is Err(
-      @quickcheck_statemachine.RunFailure::PostconditionFailed(
+      PostconditionFailed(
         step_index~,
         command~,
         response~,

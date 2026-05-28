@@ -21,7 +21,7 @@ fn[CSym, RSym] take_commands(
   for index in start..<end {
     taken.push(commands.commands[index])
   }
-  Commands::{ commands: taken }
+  { commands: taken }
 }
 
 ///|
@@ -36,7 +36,7 @@ pub fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] generate_parallel_commands(
       let prefix_len = len / 2
       let suffix_len = len - prefix_len
       let left_len = suffix_len / 2
-      Ok(ParallelCommands::{
+      Ok({
         prefix: take_commands(commands, 0, prefix_len),
         left: take_commands(commands, prefix_len, prefix_len + left_len),
         right: take_commands(commands, prefix_len + left_len, len),

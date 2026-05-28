@@ -17,7 +17,7 @@ pub(all) struct History[C, R] {
 
 ///|
 pub fn[C, R] History::empty() -> History[C, R] {
-  History::{ events: [] }
+  { events: [] }
 }
 
 ///|
@@ -27,7 +27,7 @@ pub fn[C, R] History::push(
 ) -> History[C, R] {
   let events = self.events.copy()
   events.push(event)
-  History::{ events, }
+  { events, }
 }
 
 ///|
@@ -44,16 +44,11 @@ pub fn[C, R] make_operations(history : History[C, R]) -> Array[Operation[C, R]] 
   for event in history.events {
     match event {
       Invocation(pid~, command~) =>
-        operations.push(Operation::{
-          pid,
-          command,
-          response: None,
-          exception: None,
-        })
+        operations.push({ pid, command, response: None, exception: None })
       Response(pid~, response~) =>
         for index = operations.length() - 1; index >= 0; {
           if operations[index].pid == pid && operations[index].response is None {
-            operations[index] = Operation::{
+            operations[index] = {
               pid,
               command: operations[index].command,
               response: Some(response),
@@ -67,7 +62,7 @@ pub fn[C, R] make_operations(history : History[C, R]) -> Array[Operation[C, R]] 
       Exception(pid~, message~) =>
         for index = operations.length() - 1; index >= 0; {
           if operations[index].pid == pid && operations[index].exception is None {
-            operations[index] = Operation::{
+            operations[index] = {
               pid,
               command: operations[index].command,
               response: None,

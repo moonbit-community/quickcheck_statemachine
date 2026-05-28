@@ -10,8 +10,7 @@ test "logic reports annotated counterexamples" {
     @quickcheck_statemachine.Logic::boolean(false).annotate("expected failure"),
   )
   assert_true(logic.eval() == false)
-  guard logic.check()
-    is @quickcheck_statemachine.LogicValue::Fails(counterexample) else {
+  guard logic.check() is Fails(counterexample) else {
     fail("expected logic failure")
   }
   assert_eq(counterexample.messages.length(), 2)

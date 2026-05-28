@@ -12,7 +12,7 @@ pub(all) struct Commands[CSym, RSym] {
 
 ///|
 pub fn[CSym, RSym] Commands::empty() -> Commands[CSym, RSym] {
-  Commands::{ commands: [] }
+  { commands: [] }
 }
 
 ///|
@@ -27,7 +27,7 @@ pub fn[CSym, RSym] Commands::append(
 ) -> Commands[CSym, RSym] {
   let commands = self.commands.copy()
   commands.push(command)
-  Commands::{ commands, }
+  { commands, }
 }
 
 ///|
@@ -39,7 +39,7 @@ pub fn[CSym, RSym] Commands::concat(
   for command in right.commands {
     commands.push(command)
   }
-  Commands::{ commands, }
+  { commands, }
 }
 
 ///|
@@ -58,7 +58,7 @@ pub(all) struct RunConfig {
 
 ///|
 pub fn RunConfig::default() -> RunConfig {
-  RunConfig::{
+  {
     seed: 37,
     cases: 100,
     max_commands: 50,
@@ -73,7 +73,7 @@ pub fn RunConfig::default() -> RunConfig {
 }
 
 ///|
-pub impl Default for RunConfig with default() {
+pub impl Default for RunConfig with fn default() {
   RunConfig::default()
 }
 
@@ -141,7 +141,7 @@ pub fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] StateMachine::new(
   command_name? : (CSym) -> String = _ => "command",
   label? : (MCon, CCon, RCon) -> Array[String] = (_, _, _) => [],
 ) -> StateMachine[MSym, MCon, CSym, CCon, RSym, RCon, V, S] {
-  StateMachine::{
+  {
     init_symbolic_model,
     init_concrete_model,
     init_system,

@@ -14,5 +14,5 @@ test "environment lookup insert merge" {
   let merged = first.merge(second)
   guard merged is Ok(env) else { fail("expected merge to succeed") }
   guard env.lookup(v1) is Ok(20) else { fail("expected v1 binding") }
-  assert_true(env.lookup(@quickcheck_statemachine.Var::{ id: 9 }) is Err(_))
+  assert_true(env.lookup({ id: 9 }) is Err(_))
 }
