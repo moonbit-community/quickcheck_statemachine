@@ -759,14 +759,11 @@ The repository contains smaller focused examples:
 - `filesystem_test.mbt` shows symbolic handles and label coverage diagnostics.
 - `jug_test.mbt` uses a state machine as a search problem for the water-jug
   puzzle.
-- `parallel_test.mbt` documents the current deterministic parallel command
-  runner.
 
 Replay is exposed through `replay`, `assert_replay`, and `run_saved_commands`;
 the examples in this README use scripted generation with `assert_check`.
 
-The Haskell library demonstrates concurrent race-condition testing. This
-MoonBit package currently exposes `generate_parallel_commands`,
+This MoonBit package currently exposes `generate_parallel_commands`,
 `ParallelCommands`, and `run_parallel_commands`, but the current runner
 deterministically linearises commands as `prefix`, then `left`, then `right`.
 It is not yet a full concurrent linearizability checker.
