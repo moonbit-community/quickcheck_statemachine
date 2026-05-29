@@ -576,11 +576,13 @@ fn command_name(command : Command) -> String {
 ///|
 fn config(
   max_commands~ : Int,
+  seed? : UInt64 = 11,
+  cases? : Int = 1,
   shrink? : Bool = true,
 ) -> @quickcheck_statemachine.RunConfig {
   {
-    seed: 11,
-    cases: 1,
+    seed,
+    cases,
     max_commands,
     size: max_commands,
     max_tries: 20,
@@ -676,21 +678,75 @@ while the model expects `5`.
 
 ```mbt check
 ///|
-test "sequential property finds the logic bug" {
-  let reference : @quickcheck_statemachine.Ref[RefId] = Symbolic(@quickcheck_statemachine.Var::{
-    id: 0,
-  })
-  let commands : Array[Command] = [Create, Write(reference, 5), Read(reference)]
+test "random generation shrinks the logic bug" {
   let result = @quickcheck_statemachine.check(
-    sm(LogicBug, script=Some(commands)),
-    config=config(max_commands=commands.length(), shrink=false),
+    sm(LogicBug),
+    config=config(seed=37, cases=100, max_commands=8),
   )
-  guard result is Err(PostconditionFailed(step_index~, response~, logic~, ..)) else {
-    fail("expected postcondition failure")
+  guard result
+    is Err(
+      PostconditionFailed(
+        step_index~,
+        response~,
+        commands~,
+        shrinks~,
+        logic~,
+        ..
+      )
+    ) else {
+    fail("expected a shrunk postcondition failure")
   }
   assert_eq(step_index, 2)
   assert_true(response is ReadValue(6))
+  assert_eq(commands.length(), 3)
+  assert_true(shrinks > 0)
   assert_true(!logic.eval())
+}
+```
+
+The returned failure carries the minimized symbolic command program, the
+concrete invocation/response history, and the failed logical predicate. The
+formatting helpers are intentionally small so a test suite can print or save the
+parts that are useful for its domain.
+
+```mbt check
+///|
+test "diagnostics expose commands history and predicate names" {
+  let result = @quickcheck_statemachine.check(
+    sm(LogicBug),
+    config=config(seed=37, cases=100, max_commands=8),
+  )
+  guard result is Err(PostconditionFailed(commands~, history~, logic~, ..)) else {
+    fail("expected a postcondition failure")
+  }
+  // symbolic commands
+  inspect(
+    @quickcheck_statemachine.format_commands(commands),
+    content=(
+      #|0: Create -> Created(Symbolic({ id: 0 }))
+      #|1: Write(Symbolic({ id: 0 }), 5) -> Written
+      #|2: Read(Symbolic({ id: 0 })) -> ReadValue(5)
+      #|
+    ),
+  )
+  // concrete history
+  inspect(
+    @quickcheck_statemachine.format_history(history),
+    content=(
+      #|Invocation(pid={ id: 0 }, command=Create)
+      #|Response(pid={ id: 0 }, response=Created(Concrete({ id: 0 })))
+      #|Invocation(pid={ id: 1 }, command=Write(Concrete({ id: 0 }), 5))
+      #|Response(pid={ id: 1 }, response=Written)
+      #|Invocation(pid={ id: 2 }, command=Read(Concrete({ id: 0 })))
+      #|Response(pid={ id: 2 }, response=ReadValue(6))
+      #|
+    ),
+  )
+  // failed predicate
+  inspect(
+    @quickcheck_statemachine.format_counterexample(logic.counterexample()),
+    content="Read",
+  )
 }
 ```
 
