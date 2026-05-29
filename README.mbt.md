@@ -67,7 +67,7 @@ Generated programs cannot contain real references before execution starts.
 Commands therefore use `Ref[RefId]`: symbolic references during generation, and
 concrete references when the program is executed.
 
-```moonbit nocheck
+```mbt check
 ///|
 struct RefId {
   id : Int
@@ -99,7 +99,7 @@ looked up in the environment and replaced by the concrete `RefId`.
 The implementation stores references in a mutable array. The `Bug` parameter is
 there only to demonstrate that the property can find a bad implementation.
 
-```moonbit nocheck
+```mbt check
 ///|
 enum Bug {
   NoBug
@@ -122,7 +122,7 @@ struct ReferenceSystem {
 The helper functions are ordinary system operations. They only deal with
 concrete ids.
 
-```moonbit nocheck
+```mbt check
 ///|
 fn reference_id(reference : @quickcheck_statemachine.Ref[RefId]) -> Int? {
   match reference {
@@ -156,7 +156,7 @@ fn system_update(system : ReferenceSystem, id : Int, value : Int) -> Unit {
 `semantics` is the real command interpreter. In a larger test this is where you
 would call a database, file system, service, or mutable data structure.
 
-```moonbit nocheck
+```mbt check
 ///|
 fn semantics(
   bug : Bug,
@@ -212,7 +212,7 @@ fn semantics(
 The model is pure data. It says which references exist and what value each
 reference should contain.
 
-```moonbit nocheck
+```mbt check
 ///|
 struct ModelEntry {
   reference : @quickcheck_statemachine.Ref[RefId]
@@ -233,7 +233,7 @@ fn model_empty() -> Model {
 The model helpers are deliberately simple. They are not the implementation under
 test; they are the specification used to check it.
 
-```moonbit nocheck
+```mbt check
 ///|
 fn model_lookup(
   model : Model,
@@ -280,7 +280,7 @@ The precondition is the client contract. `Create` is always valid. Reads,
 writes, and increments are valid only for references that are already present in
 the model.
 
-```moonbit nocheck
+```mbt check
 ///|
 fn precondition(
   model : Model,
@@ -298,7 +298,7 @@ fn precondition(
 The transition function advances the pure model. It is used both while
 generating symbolic programs and while checking concrete executions.
 
-```moonbit nocheck
+```mbt check
 ///|
 fn transition(model : Model, command : Command, response : Response) -> Model {
   match (command, response) {
@@ -321,7 +321,7 @@ Postconditions compare the concrete system response with the model. A `Read`
 must return the current modeled value. A `Create` must create a reference whose
 initial modeled value is zero.
 
-```moonbit nocheck
+```mbt check
 ///|
 fn postcondition(
   model : Model,
@@ -354,7 +354,7 @@ The generator creates commands from the current symbolic model. If there are no
 references yet, it must create one first. Once references exist, it can generate
 any valid operation over one of them.
 
-```moonbit nocheck
+```mbt check
 ///|
 fn choose_reference(
   model : Model,
@@ -388,7 +388,7 @@ fn generator(
 The shrinker tries smaller writes. The library also performs dependency-aware
 command deletion and remaps symbolic variables when possible.
 
-```moonbit nocheck
+```mbt check
 ///|
 fn shrinker(_model : Model, command : Command) -> Array[Command] {
   match command {
@@ -409,7 +409,7 @@ fn shrinker(_model : Model, command : Command) -> Array[Command] {
 it allocates a fresh symbolic variable. For `Read` it returns the value from the
 model. For `Write` and `Increment` it can return simple acknowledgements.
 
-```moonbit nocheck
+```mbt check
 ///|
 fn mock(
   model : Model,
@@ -443,7 +443,7 @@ fn response_vars(response : Response) -> Array[@quickcheck_statemachine.Var] {
 Before execution, symbolic references must be reified into concrete references
 using the environment built from earlier responses.
 
-```moonbit nocheck
+```mbt check
 ///|
 fn reify_ref(
   reference : @quickcheck_statemachine.Ref[RefId],
@@ -491,7 +491,7 @@ fn reify_command(
 After execution, a symbolic `Created` response must be bound to the concrete
 reference returned by the system.
 
-```moonbit nocheck
+```mbt check
 ///|
 fn bind_response(
   symbolic : Response,
@@ -514,7 +514,7 @@ When shrinking removes commands, references may need to be rewritten. Returning
 `None` means a candidate command is no longer valid because it depends on a
 reference that disappeared.
 
-```moonbit nocheck
+```mbt check
 ///|
 fn remap_ref(
   reference : @quickcheck_statemachine.Ref[RefId],
@@ -562,7 +562,7 @@ All callbacks are packed into a `StateMachine`. The optional `script` parameter
 below is just a test convenience: it lets the examples run a fixed command
 program instead of random generation.
 
-```moonbit nocheck
+```mbt check
 ///|
 fn command_name(command : Command) -> String {
   match command {
@@ -593,7 +593,7 @@ fn config(
 }
 ```
 
-```moonbit nocheck
+```mbt check
 ///|
 fn sm(
   bug : Bug,
@@ -650,7 +650,7 @@ fn sm(
 
 With the faithful implementation, the command program below passes.
 
-```moonbit nocheck
+```mbt check
 ///|
 test "sequential property passes without the bug" {
   let reference : @quickcheck_statemachine.Ref[RefId] = Symbolic(@quickcheck_statemachine.Var::{
@@ -674,7 +674,7 @@ With the logic bug enabled, the same machinery finds a small counterexample:
 create a reference, write `5`, then read it. The implementation returns `6`,
 while the model expects `5`.
 
-```moonbit nocheck
+```mbt check
 ///|
 test "sequential property finds the logic bug" {
   let reference : @quickcheck_statemachine.Ref[RefId] = Symbolic(@quickcheck_statemachine.Var::{
