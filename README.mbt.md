@@ -5,18 +5,12 @@ with model-based properties. Instead of checking one operation at a time, a test
 generates a whole program of commands, executes it against a mutable system, and
 checks every response against a pure model.
 
-This style is useful when:
+This library is useful when:
 
 - valid operations depend on earlier operations;
 - a bug only appears after a sequence of commands;
 - the implementation has handles, ids, files, queues, counters, or other mutable
   state that is awkward to test with single examples.
-
-The shape follows the same idea as Haskell's
-[`quickcheck-state-machine`](https://github.com/stevana/quickcheck-state-machine):
-you describe commands, a model, preconditions, postconditions, transitions,
-generators, shrinkers, and the real semantics. The library handles generation,
-execution, replay, shrinking, and counterexample reporting.
 
 ## How It Works
 
@@ -34,18 +28,31 @@ A state-machine test has these pieces:
   values during execution.
 - `run_command`: the real implementation under test.
 
-The sequential property checks one generated program by running this loop:
+The sequential property first builds a complete symbolic command program:
 
-1. Start with the initial model and initial system.
-2. Generate a command that satisfies the precondition.
-3. Reify symbolic references into concrete references.
-4. Execute the command against the system.
+1. Start with the initial symbolic model and a fresh symbolic-variable supply.
+2. Ask the generator for a command and keep retrying until the precondition
+   accepts it, or the retry budget is exhausted.
+3. Ask `mock` for the symbolic response and record any variables introduced by
+   that response.
+4. Advance the symbolic model with the symbolic transition.
+5. Repeat until `max_commands` is reached or the generator stops.
+
+The generated program is then replayed against the concrete system:
+
+1. Start with the initial concrete model, initial system, empty environment, and
+   empty history.
+2. Reify symbolic references into concrete references using the environment.
+3. Execute the command against the system and record invocation/response
+   history.
+4. Check the postcondition against the pre-state model and observed response.
 5. Bind any new concrete references returned by the response.
-6. Check the postcondition.
-7. Advance the model with the transition function.
+6. Advance the concrete model, check the invariant, and collect labels.
+7. After the program finishes, run cleanup and coverage checks.
 
-If a step fails, the library shrinks the command program and reports a smaller
-counterexample.
+When `check` finds a semantic failure and `shrink` is enabled, it shrinks the
+generated command program and reports a smaller counterexample. Direct
+`run_commands` and `replay` calls execute the supplied program as-is.
 
 ## Example: Mutable References
 
@@ -693,12 +700,14 @@ The repository contains smaller focused examples:
 
 - `counter_test.mbt` shows the smallest counter-style state machine.
 - `queue_test.mbt` checks a mutable circular queue against a pure FIFO model.
-- `filesystem_test.mbt` shows symbolic handles, labels, command coverage, and
-  replay.
+- `filesystem_test.mbt` shows symbolic handles and label coverage diagnostics.
 - `jug_test.mbt` uses a state machine as a search problem for the water-jug
   puzzle.
 - `parallel_test.mbt` documents the current deterministic parallel command
   runner.
+
+Replay is exposed through `replay`, `assert_replay`, and `run_saved_commands`;
+the examples in this README use scripted generation with `assert_check`.
 
 The Haskell library demonstrates concurrent race-condition testing. This
 MoonBit package currently exposes `generate_parallel_commands`,

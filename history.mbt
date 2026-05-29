@@ -1,9 +1,19 @@
 ///|
+/// Logical process id used to pair an invocation with its response.
+///
+/// Sequential runs use the step index as the pid. Parallel checking can assign
+/// different ids to operations that overlap in time and then search for a valid
+/// linearization of those operations.
 pub(all) struct Pid {
   id : Int
 } derive(Eq, Hash, Debug)
 
 ///|
+/// One event in an execution trace.
+///
+/// A complete operation normally appears as an `Invocation` followed later by a
+/// `Response`. If the system under test raises, the matching terminal event is
+/// an `Exception` instead.
 pub(all) enum HistoryEvent[C, R] {
   Invocation(pid~ : Pid, command~ : C)
   Response(pid~ : Pid, response~ : R)
@@ -11,16 +21,24 @@ pub(all) enum HistoryEvent[C, R] {
 } derive(Eq, Debug)
 
 ///|
+/// Ordered trace of command invocations, responses, and exceptions.
+///
+/// The history is kept in the same representation used by state-machine
+/// testing literature: it records observable calls rather than only final
+/// results, which is the information needed for counterexamples and future
+/// linearizability checks.
 pub(all) struct History[C, R] {
   events : Array[HistoryEvent[C, R]]
 } derive(Eq, Debug)
 
 ///|
+/// Creates an empty execution trace.
 pub fn[C, R] History::empty() -> History[C, R] {
   { events: [] }
 }
 
 ///|
+/// Returns a copy of the trace with one more event appended.
 pub fn[C, R] History::push(
   self : History[C, R],
   event : HistoryEvent[C, R],
@@ -31,6 +49,9 @@ pub fn[C, R] History::push(
 }
 
 ///|
+/// Invocation paired with its eventual response or exception.
+///
+/// This derived view is easier to inspect and format than the raw event stream.
 pub(all) struct Operation[C, R] {
   pid : Pid
   command : C
@@ -39,6 +60,10 @@ pub(all) struct Operation[C, R] {
 } derive(Eq, Debug)
 
 ///|
+/// Groups a raw history into operations by matching events with the same pid.
+///
+/// Responses are matched with the most recent unfinished invocation for the pid.
+/// This supports traces where operations from several pids are interleaved.
 pub fn[C, R] make_operations(history : History[C, R]) -> Array[Operation[C, R]] {
   let operations : Array[Operation[C, R]] = []
   for event in history.events {

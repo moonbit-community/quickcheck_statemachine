@@ -1,30 +1,54 @@
 ///|
+/// Summary of a successful generation or replay.
+///
+/// Reports keep both the symbolic command program and the concrete history. The
+/// symbolic program is what should be saved or shrunk; the history is what the
+/// system actually did while replaying that program.
 pub(all) struct RunReport[CSym, RSym, CCon, RCon] {
+  // Seed used for the first generated case.
   seed : UInt64
+  // Number of cases completed by `check`, or 1 for direct replay.
   cases_run : Int
+  // Total number of concrete commands executed.
   commands_run : Int
+  // Last generated or replayed symbolic program.
   commands : Commands[CSym, RSym]
+  // Concrete invocation/response trace from the last replay.
   history : History[CCon, RCon]
+  // Deduplicated semantic labels observed during replay.
   labels : Array[String]
+  // Command-name counts for the symbolic program.
   command_distribution : Array[(String, Int)]
+  // Number of accepted shrink steps used before this report was produced.
   shrinks : Int
+  // Number of shrink rounds used before this report was produced.
   shrink_rounds : Int
 } derive(Eq, Debug)
 
 ///|
+/// Failures that can occur while generating, replaying, checking, or shrinking.
+///
+/// Each failure stores the symbolic program and concrete history whenever they
+/// are available, so a user can inspect the minimized counterexample in the same
+/// style as QSM's sequential property output.
 pub(all) enum RunFailure[MSym, MCon, CSym, CCon, RSym, RCon] {
+  // The run configuration is invalid before any command is generated.
   InvalidConfig(String)
+  // Symbolic generation failed before a runnable program was available.
   GenerationFailed(
     failure~ : GenerationFailure[MSym, CSym, RSym],
     shrinks~ : Int,
     shrink_rounds~ : Int
   )
+  // The mutable system under test could not be initialized.
   InitFailed(
     commands~ : Commands[CSym, RSym],
     message~ : String,
     shrinks~ : Int,
     shrink_rounds~ : Int
   )
+  // A symbolic command mentioned a variable missing from the execution
+  // environment.
   ReifyFailed(
     step_index~ : Int,
     symbolic_command~ : CSym,
@@ -34,6 +58,7 @@ pub(all) enum RunFailure[MSym, MCon, CSym, CCon, RSym, RCon] {
     shrinks~ : Int,
     shrink_rounds~ : Int
   )
+  // `run_command` raised while executing the concrete command.
   ExecutionFailed(
     step_index~ : Int,
     command~ : CCon,
@@ -45,6 +70,8 @@ pub(all) enum RunFailure[MSym, MCon, CSym, CCon, RSym, RCon] {
     shrinks~ : Int,
     shrink_rounds~ : Int
   )
+  // The concrete response could not be matched with the symbolic response that
+  // predicted fresh variables.
   BindFailed(
     step_index~ : Int,
     symbolic_response~ : RSym,
@@ -55,6 +82,7 @@ pub(all) enum RunFailure[MSym, MCon, CSym, CCon, RSym, RCon] {
     shrinks~ : Int,
     shrink_rounds~ : Int
   )
+  // The model rejected the concrete response for this command.
   PostconditionFailed(
     step_index~ : Int,
     command~ : CCon,
@@ -68,6 +96,7 @@ pub(all) enum RunFailure[MSym, MCon, CSym, CCon, RSym, RCon] {
     shrinks~ : Int,
     shrink_rounds~ : Int
   )
+  // The model-wide invariant failed after a successful command transition.
   InvariantBroken(
     step_index~ : Int,
     model~ : MCon,
@@ -77,6 +106,7 @@ pub(all) enum RunFailure[MSym, MCon, CSym, CCon, RSym, RCon] {
     shrinks~ : Int,
     shrink_rounds~ : Int
   )
+  // Cleanup raised after replay. The command history is still preserved.
   CleanupFailed(
     commands~ : Commands[CSym, RSym],
     history~ : History[CCon, RCon],
@@ -84,6 +114,7 @@ pub(all) enum RunFailure[MSym, MCon, CSym, CCon, RSym, RCon] {
     shrinks~ : Int,
     shrink_rounds~ : Int
   )
+  // Execution succeeded, but required labels or command names were not covered.
   CoverageFailed(
     commands~ : Commands[CSym, RSym],
     history~ : History[CCon, RCon],
@@ -95,11 +126,14 @@ pub(all) enum RunFailure[MSym, MCon, CSym, CCon, RSym, RCon] {
 } derive(Eq, Debug)
 
 ///|
+// Normalizes any raised MoonBit error into a message that can be stored in
+// `RunFailure`.
 fn error_message(error : Error) -> String {
   error.to_string()
 }
 
 ///|
+// Rewrites the shrink counters inside a failure after minimization has finished.
 fn[MSym, MCon, CSym, CCon, RSym, RCon] with_shrink_stats(
   failure : RunFailure[MSym, MCon, CSym, CCon, RSym, RCon],
   shrinks : Int,
@@ -217,6 +251,9 @@ fn[MSym, MCon, CSym, CCon, RSym, RCon] with_shrink_stats(
 }
 
 ///|
+// Best-effort cleanup used on failure paths. A cleanup error must not hide the
+// original failing command, because that original failure is the useful
+// counterexample.
 fn[S, MCon] cleanup_after_failure(
   cleanup : (MCon, S) -> Unit raise,
   model : MCon,
@@ -230,6 +267,7 @@ fn[S, MCon] cleanup_after_failure(
 }
 
 ///|
+// Computes missing required labels after replay.
 fn missing_required_values(
   required : Array[String],
   values : Array[String],
@@ -244,6 +282,20 @@ fn missing_required_values(
 }
 
 ///|
+/// Replays a symbolic command program against the concrete system.
+///
+/// This is the sequential property loop from QSM:
+///
+/// 1. initialize the system, concrete model, environment, and history;
+/// 2. reify each symbolic command through the environment;
+/// 3. execute the concrete command and record invocation/response history;
+/// 4. check the postcondition against the pre-state model;
+/// 5. bind newly returned concrete references into the environment;
+/// 6. advance/check the concrete model and collect coverage labels.
+///
+/// The generated program already satisfied symbolic preconditions; replay does
+/// not re-check them because its job is to compare the implementation with the
+/// concrete model.
 pub fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] run_commands(
   spec : StateMachine[MSym, MCon, CSym, CCon, RSym, RCon, V, S],
   commands : Commands[CSym, RSym],
@@ -269,6 +321,8 @@ pub fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] run_commands(
           for step_index = 0, model = (spec.init_concrete_model)(), environment = Environment::empty(), history = initial_history; step_index <
              commands.commands.length(); {
             let symbolic = commands.commands[step_index]
+            // Reification is the point where `Ref::Symbolic(v)` values become
+            // `Ref::Concrete(value)` values returned by earlier commands.
             match (spec.reify_command)(symbolic.command, environment) {
               Err(error) => {
                 cleanup_after_failure(spec.cleanup, model, system)
@@ -289,6 +343,8 @@ pub fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] run_commands(
                 let invoked = history.push(
                   Invocation(pid~, command=concrete_command),
                 )
+                // User semantics can raise, for example when a file system,
+                // database, or service call fails unexpectedly.
                 let run_result = try
                   (spec.run_command)(concrete_command, system)
                 catch {
@@ -318,6 +374,8 @@ pub fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] run_commands(
                     let responded = invoked.push(
                       Response(pid~, response=concrete_response),
                     )
+                    // Compute the next model before checking the postcondition
+                    // so a failure can report both the previous and next model.
                     let next_model = (spec.transition_concrete)(
                       model, concrete_command, concrete_response,
                     )
@@ -364,6 +422,8 @@ pub fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] run_commands(
                         )
                       }
                       Ok(next_environment) => {
+                        // Invariants describe model-wide properties that
+                        // should hold after every successful transition.
                         let invariant = (spec.invariant)(next_model)
                         if !invariant.eval() {
                           cleanup_after_failure(
@@ -417,6 +477,8 @@ pub fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] run_commands(
                   ),
                 )
               Ok(_) => {
+                // Coverage is checked after successful replay so it does not
+                // mask a real semantic failure in the system under test.
                 let unique_labels = collect_labels(labels)
                 let distribution = command_names(commands, spec.command_name)
                 let missing_labels = missing_required_values(
@@ -462,6 +524,7 @@ pub fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] run_commands(
 }
 
 ///|
+/// Alias for replaying a previously generated symbolic command program.
 pub fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] replay(
   spec : StateMachine[MSym, MCon, CSym, CCon, RSym, RCon, V, S],
   commands : Commands[CSym, RSym],
@@ -474,6 +537,8 @@ pub fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] replay(
 }
 
 ///|
+// Minimizes a failing program by repeatedly accepting the first smaller
+// candidate that still fails.
 fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] shrink_failure(
   spec : StateMachine[MSym, MCon, CSym, CCon, RSym, RCon, V, S],
   commands : Commands[CSym, RSym],
@@ -494,6 +559,13 @@ fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] shrink_failure(
 }
 
 ///|
+/// Generates and executes many state-machine programs.
+///
+/// Each case uses a deterministic seed derived from `config.seed`. On the first
+/// semantic failure, `check` optionally shrinks the generated program and then
+/// returns the minimized failure. Coverage failures are not shrunk because they
+/// mean a successful run did not include required scenarios, not that a smaller
+/// counterexample should be found.
 pub fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] check(
   spec : StateMachine[MSym, MCon, CSym, CCon, RSym, RCon, V, S],
   config? : RunConfig = RunConfig::default(),
@@ -568,6 +640,10 @@ pub fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] check(
 }
 
 ///|
+/// Runs `check` and raises on failure.
+///
+/// This is convenient inside MoonBit tests where a failing property should fail
+/// the test immediately.
 pub fn[
   MSym : @debug.Debug,
   MCon : @debug.Debug,
@@ -589,6 +665,9 @@ pub fn[
 }
 
 ///|
+/// Runs `replay` and raises on failure.
+///
+/// Use this for checked-in regression programs or minimized counterexamples.
 pub fn[
   MSym : @debug.Debug,
   MCon : @debug.Debug,

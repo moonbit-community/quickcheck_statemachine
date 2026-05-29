@@ -1,4 +1,10 @@
 ///|
+/// Model transition event passed to coverage labelers.
+///
+/// The standalone `Labeler` helper receives both the model before the command
+/// and the model after the transition. The `StateMachine.label` callback used by
+/// replay is lighter weight: it receives the concrete model before the command,
+/// the concrete command, and the concrete response.
 pub(all) struct Event[Model, Command, Response] {
   before_model : Model
   command : Command
@@ -7,11 +13,13 @@ pub(all) struct Event[Model, Command, Response] {
 } derive(Eq, Debug)
 
 ///|
+/// Callback wrapper for classifying a state-machine event.
 pub(all) struct Labeler[Model, Command, Response] {
   classify : (Event[Model, Command, Response]) -> Array[String]
 }
 
 ///|
+/// Applies a labeler to one event.
 pub fn[Model, Command, Response] classify(
   labeler : Labeler[Model, Command, Response],
   event : Event[Model, Command, Response],
@@ -20,6 +28,7 @@ pub fn[Model, Command, Response] classify(
 }
 
 ///|
+// Small local helper used by label and command-name coverage checks.
 fn contains_string(values : Array[String], value : String) -> Bool {
   for item in values {
     if item == value {
@@ -30,6 +39,10 @@ fn contains_string(values : Array[String], value : String) -> Bool {
 }
 
 ///|
+/// Deduplicates labels while preserving first-seen order.
+///
+/// The report only needs to show whether a scenario occurred at least once, but
+/// preserving order keeps the output stable for tests and saved diagnostics.
 pub fn collect_labels(labels : Array[String]) -> Array[String] {
   let unique : Array[String] = []
   for label in labels {
@@ -41,6 +54,10 @@ pub fn collect_labels(labels : Array[String]) -> Array[String] {
 }
 
 ///|
+/// Counts how often each command name appears in a generated program.
+///
+/// `command_name` coverage is a coarse audit that generation is exploring every
+/// operation family expected by the test.
 pub fn[CSym, RSym] command_names(
   commands : Commands[CSym, RSym],
   name : (CSym) -> String,
@@ -54,6 +71,7 @@ pub fn[CSym, RSym] command_names(
 }
 
 ///|
+/// Lists command names in first-seen order without counts.
 pub fn[CSym, RSym] command_names_in_order(
   commands : Commands[CSym, RSym],
   name : (CSym) -> String,
@@ -69,6 +87,7 @@ pub fn[CSym, RSym] command_names_in_order(
 }
 
 ///|
+/// Returns the required command names that did not appear in a run.
 pub fn cover_command_names(
   seen : Array[(String, Int)],
   required : Array[String],

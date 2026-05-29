@@ -1,4 +1,11 @@
 ///|
+/// A two-branch parallel command program.
+///
+/// The `prefix` is executed first to set up shared state. `left` and `right`
+/// represent commands that should be considered concurrent. The current runner
+/// linearizes them deterministically; the shape is kept explicit so a future
+/// implementation can replace that with real concurrent execution and
+/// linearizability search.
 pub(all) struct ParallelCommands[CSym, RSym] {
   prefix : Commands[CSym, RSym]
   left : Commands[CSym, RSym]
@@ -6,12 +13,17 @@ pub(all) struct ParallelCommands[CSym, RSym] {
 } derive(Eq, Debug)
 
 ///|
+/// Generalized representation for more than two parallel suffixes.
+///
+/// This mirrors the structure described by QSM: a sequential prefix followed by
+/// one or more groups of commands whose operations may overlap.
 pub(all) struct NParallelCommands[CSym, RSym] {
   prefix : Commands[CSym, RSym]
   suffixes : Array[Commands[CSym, RSym]]
 } derive(Eq, Debug)
 
 ///|
+// Copies a half-open slice of a generated symbolic program.
 fn[CSym, RSym] take_commands(
   commands : Commands[CSym, RSym],
   start : Int,
@@ -25,6 +37,12 @@ fn[CSym, RSym] take_commands(
 }
 
 ///|
+/// Generates a sequential program and splits it into prefix, left, and right.
+///
+/// QSM's parallel property generates commands from one symbolic model and then
+/// runs a prefix before exploring concurrent suffixes. This helper preserves the
+/// same command-program shape even though execution is currently reduced to a
+/// deterministic linearization.
 pub fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] generate_parallel_commands(
   spec : StateMachine[MSym, MCon, CSym, CCon, RSym, RCon, V, S],
   config? : RunConfig = RunConfig::default(),
@@ -46,6 +64,11 @@ pub fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] generate_parallel_commands(
 }
 
 ///|
+/// Produces the sequential order currently used to replay a parallel program.
+///
+/// A complete linearizability checker would search all histories that respect
+/// invocation/response ordering. Until that exists, this function makes the
+/// chosen order explicit and testable.
 pub fn[CSym, RSym] linearise(
   commands : ParallelCommands[CSym, RSym],
 ) -> Commands[CSym, RSym]? {
@@ -58,6 +81,11 @@ pub fn[CSym, RSym] linearise(
 }
 
 ///|
+/// Runs a parallel-shaped program through the current linearization path.
+///
+/// This gives users a stable API for parallel properties while the internal
+/// implementation remains conservative. Any future concurrent runner can keep
+/// this entry point and strengthen the semantics behind it.
 pub fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] run_parallel_commands(
   spec : StateMachine[MSym, MCon, CSym, CCon, RSym, RCon, V, S],
   commands : ParallelCommands[CSym, RSym],
