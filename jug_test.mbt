@@ -143,14 +143,18 @@ fn jug_solution_spec() -> @quickcheck_statemachine.StateMachine[
 test "die hard jug model covers alternate commands" {
   let model = JugModel::{ big_jug: 1, small_jug: 2 }
   let fill_small = jug_next(model, JugFillSmall)
-  assert_eq(fill_small.big_jug, 1)
-  assert_eq(fill_small.small_jug, 3)
   let empty_big = jug_next(model, JugEmptyBig)
-  assert_eq(empty_big.big_jug, 0)
-  assert_eq(empty_big.small_jug, 2)
   let small_into_big = jug_next(model, JugSmallIntoBig)
-  assert_eq(small_into_big.big_jug, 3)
-  assert_eq(small_into_big.small_jug, 0)
+  inspect(
+    @debug.to_string([fill_small, empty_big, small_into_big]),
+    content=(
+      #|[
+      #|  { big_jug: 1, small_jug: 3 },
+      #|  { big_jug: 0, small_jug: 2 },
+      #|  { big_jug: 3, small_jug: 0 },
+      #|]
+    ),
+  )
 }
 
 ///|
@@ -174,18 +178,51 @@ test "die hard jug reports the 4 liter solution" {
         model~,
         next_model~,
         commands~,
+        history~,
+        logic~,
         ..
       )
     ) else {
     fail("expected jug solution to be reported as a postcondition failure")
   }
-  assert_eq(step_index, 5)
-  assert_true(command is JugBigIntoSmall)
-  assert_true(response is JugDone)
-  assert_eq(model.big_jug, 5)
-  assert_eq(model.small_jug, 2)
-  assert_eq(next_model.big_jug, 4)
-  assert_eq(next_model.small_jug, 3)
-  assert_eq(commands.length(), 6)
-  assert_true(commands.commands[4].command is JugFillBig)
+  inspect(
+    "\{step_index}: \{@debug.to_string(command)} -> \{@debug.to_string(response)}, model=\{@debug.to_string(model)}, next=\{@debug.to_string(next_model)}",
+    content=(
+      #|5: JugBigIntoSmall -> JugDone, model={ big_jug: 5, small_jug: 2 }, next={ big_jug: 4, small_jug: 3 }
+    ),
+  )
+  inspect(
+    @quickcheck_statemachine.format_commands(commands),
+    content=(
+      #|0: JugFillBig -> JugDone
+      #|1: JugBigIntoSmall -> JugDone
+      #|2: JugEmptySmall -> JugDone
+      #|3: JugBigIntoSmall -> JugDone
+      #|4: JugFillBig -> JugDone
+      #|5: JugBigIntoSmall -> JugBigJugIs4
+      #|
+    ),
+  )
+  inspect(
+    @quickcheck_statemachine.format_history(history),
+    content=(
+      #|Invocation(pid={ id: 0 }, command=JugFillBig)
+      #|Response(pid={ id: 0 }, response=JugDone)
+      #|Invocation(pid={ id: 1 }, command=JugBigIntoSmall)
+      #|Response(pid={ id: 1 }, response=JugDone)
+      #|Invocation(pid={ id: 2 }, command=JugEmptySmall)
+      #|Response(pid={ id: 2 }, response=JugDone)
+      #|Invocation(pid={ id: 3 }, command=JugBigIntoSmall)
+      #|Response(pid={ id: 3 }, response=JugDone)
+      #|Invocation(pid={ id: 4 }, command=JugFillBig)
+      #|Response(pid={ id: 4 }, response=JugDone)
+      #|Invocation(pid={ id: 5 }, command=JugBigIntoSmall)
+      #|Response(pid={ id: 5 }, response=JugDone)
+      #|
+    ),
+  )
+  inspect(
+    @quickcheck_statemachine.format_counterexample(logic.counterexample()),
+    content="jug reports 4 liter solution",
+  )
 }

@@ -303,17 +303,24 @@ test "queue full command is rejected by precondition" {
     ) else {
     fail("expected queue full generation failure")
   }
-  assert_eq(step_index, 2)
-  assert_eq(commands.length(), 2)
-  assert_true(commands.commands[0].command is QueueNew(1))
-  assert_true(commands.commands[1].command is QueuePut(0, 1))
-  assert_eq(model.queues[0].elems.length(), 1)
-  assert_eq(model.queues[0].elems[0], 1)
+  inspect(step_index, content="2")
+  inspect(
+    @quickcheck_statemachine.format_commands(commands),
+    content=(
+      #|0: QueueNew(1) -> QueueNewed(0)
+      #|1: QueuePut(0, 1) -> QueuePutDone
+      #|
+    ),
+  )
+  inspect(
+    @debug.to_string(model),
+    content="{ queues: [{ elems: [1], capacity: 1 }] }",
+  )
 }
 
 ///|
 // Circular-buffer size regression:
-// The blog queue example shows that size bugs often survive trivial capacity-one
+// The queue example shows that size bugs often survive trivial capacity-one
 // tests and only appear after the input/output indices wrap. These two scripts
 // pin both cases: a one-element queue and a wraparound sequence where the
 // correct size formula must account for modulo arithmetic rather than an
@@ -328,7 +335,19 @@ test "queue size regressions pass with corrected circular buffer" {
     queue_script_spec(size_one),
     config=case_config(max_commands=size_one.length()),
   )
-  assert_eq(summary_one.commands_run, 3)
+  inspect(summary_one.commands_run, content="3")
+  inspect(
+    @quickcheck_statemachine.format_history(summary_one.history),
+    content=(
+      #|Invocation(pid={ id: 0 }, command=QueueNew(1))
+      #|Response(pid={ id: 0 }, response=QueueNewed(0))
+      #|Invocation(pid={ id: 1 }, command=QueuePut(0, 0))
+      #|Response(pid={ id: 1 }, response=QueuePutDone)
+      #|Invocation(pid={ id: 2 }, command=QueueSize(0))
+      #|Response(pid={ id: 2 }, response=QueueSized(1))
+      #|
+    ),
+  )
   let wraparound : Array[QueueCommand] = [
     QueueNew(2),
     QueuePut(0, 0),
@@ -341,5 +360,23 @@ test "queue size regressions pass with corrected circular buffer" {
     queue_script_spec(wraparound),
     config=case_config(max_commands=wraparound.length()),
   )
-  assert_eq(summary_wraparound.commands_run, 6)
+  inspect(summary_wraparound.commands_run, content="6")
+  inspect(
+    @quickcheck_statemachine.format_history(summary_wraparound.history),
+    content=(
+      #|Invocation(pid={ id: 0 }, command=QueueNew(2))
+      #|Response(pid={ id: 0 }, response=QueueNewed(0))
+      #|Invocation(pid={ id: 1 }, command=QueuePut(0, 0))
+      #|Response(pid={ id: 1 }, response=QueuePutDone)
+      #|Invocation(pid={ id: 2 }, command=QueuePut(0, 1))
+      #|Response(pid={ id: 2 }, response=QueuePutDone)
+      #|Invocation(pid={ id: 3 }, command=QueueGet(0))
+      #|Response(pid={ id: 3 }, response=QueueGot(0))
+      #|Invocation(pid={ id: 4 }, command=QueuePut(0, 2))
+      #|Response(pid={ id: 4 }, response=QueuePutDone)
+      #|Invocation(pid={ id: 5 }, command=QueueSize(0))
+      #|Response(pid={ id: 5 }, response=QueueSized(2))
+      #|
+    ),
+  )
 }

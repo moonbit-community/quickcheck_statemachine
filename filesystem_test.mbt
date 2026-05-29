@@ -835,7 +835,7 @@ fn fs_sym_name(command : FsSymCommand) -> String {
 
 ///|
 // Labels used as coverage diagnostics:
-// The file-system example in the blog uses labels to make sure generated
+// The file-system example uses labels to make sure generated
 // programs cover meaningful behaviors, not just arbitrary command names. These
 // labels identify multi-open scenarios, successful reads, closed-handle writes,
 // and busy reads.
@@ -954,7 +954,7 @@ fn fs_unknown_handle_probe_spec() -> @quickcheck_statemachine.StateMachine[
 // exist, reified at execution time, and still satisfy the pure model. The
 // required labels assert that the scenario covers both multiple open handles and
 // at least one successful read.
-test "qsm blog filesystem open-write-read examples pass with symbolic handles" {
+test "qsm filesystem open-write-read examples pass with symbolic handles" {
   let root = fs_root_dir()
   let z = fs_dir(["z"])
   let a = fs_file(root, "a")
@@ -980,7 +980,29 @@ test "qsm blog filesystem open-write-read examples pass with symbolic handles" {
       "OpenTwo", "SuccessfulRead",
     ]),
   )
-  assert_eq(summary.commands_run, commands.length())
+  inspect(summary.commands_run, content="12")
+  inspect(
+    @debug.to_string(summary.labels),
+    content="[\"OpenTwo\", \"SuccessfulRead\"]",
+  )
+  inspect(
+    @quickcheck_statemachine.format_commands(summary.commands),
+    content=(
+      #|0: FsSymOpen({ dir: { parts: [] }, name: "a" }) -> FsSymSucceeded(FsSymHandle({ id: 0 }))
+      #|1: FsSymOpen({ dir: { parts: [] }, name: "b" }) -> FsSymSucceeded(FsSymHandle({ id: 1 }))
+      #|2: FsSymWrite(Symbolic({ id: 0 }), "Hi") -> FsSymSucceeded(FsSymUnit)
+      #|3: FsSymWrite(Symbolic({ id: 1 }), "Bye") -> FsSymSucceeded(FsSymUnit)
+      #|4: FsSymClose(Symbolic({ id: 0 })) -> FsSymSucceeded(FsSymUnit)
+      #|5: FsSymRead({ dir: { parts: [] }, name: "a" }) -> FsSymSucceeded(FsSymText("Hi"))
+      #|6: FsSymClose(Symbolic({ id: 1 })) -> FsSymSucceeded(FsSymUnit)
+      #|7: FsSymRead({ dir: { parts: [] }, name: "b" }) -> FsSymSucceeded(FsSymText("Bye"))
+      #|8: FsSymMkDir({ parts: ["z"] }) -> FsSymSucceeded(FsSymUnit)
+      #|9: FsSymOpen({ dir: { parts: ["z"] }, name: "b" }) -> FsSymSucceeded(FsSymHandle({ id: 2 }))
+      #|10: FsSymClose(Symbolic({ id: 2 })) -> FsSymSucceeded(FsSymUnit)
+      #|11: FsSymRead({ dir: { parts: ["z"] }, name: "b" }) -> FsSymSucceeded(FsSymText(""))
+      #|
+    ),
+  )
 }
 
 ///|
@@ -989,7 +1011,7 @@ test "qsm blog filesystem open-write-read examples pass with symbolic handles" {
 // introduced that variable. The property checks that generation exhausts its
 // retries and reports a deadlock at step zero instead of producing a program
 // that would fail later during reification.
-test "qsm blog precondition rejects handles that were never created" {
+test "qsm precondition rejects handles that were never created" {
   let result = @quickcheck_statemachine.check(
     fs_unknown_handle_probe_spec(),
     config=case_config(max_commands=1, max_tries=3),
@@ -1000,9 +1022,12 @@ test "qsm blog precondition rejects handles that were never created" {
     ) else {
     fail("expected unknown handle to exhaust generation attempts")
   }
-  assert_eq(step_index, 0)
-  assert_eq(model.created_handles.length(), 0)
-  assert_eq(commands.length(), 0)
+  inspect(step_index, content="0")
+  inspect(
+    @debug.to_string(model),
+    content="{ dirs: [{ parts: [] }], files: [], handles: [], created_handles: [] }",
+  )
+  inspect(@quickcheck_statemachine.format_commands(commands), content="")
 }
 
 ///|
@@ -1012,7 +1037,7 @@ test "qsm blog precondition rejects handles that were never created" {
 // the intentionally liberal precondition: closed-handle writes remain legal test
 // commands so the model can verify the expected `HandleClosed` response and the
 // label can record that coverage.
-test "qsm blog precondition still allows closed handle errors" {
+test "qsm precondition still allows closed handle errors" {
   let root = fs_root_dir()
   let a = fs_file(root, "a")
   let commands : Array[FsSymCommand] = [
@@ -1026,7 +1051,23 @@ test "qsm blog precondition still allows closed handle errors" {
       "ClosedHandleWrite",
     ]),
   )
-  assert_eq(summary.commands_run, 3)
+  inspect(summary.commands_run, content="3")
+  inspect(@debug.to_string(summary.labels), content="[\"ClosedHandleWrite\"]")
+  inspect(
+    @quickcheck_statemachine.format_history(summary.history),
+    content=(
+      #|Invocation(
+      #|  pid={ id: 0 },
+      #|  command=FsOpen({ dir: { parts: [] }, name: "a" }),
+      #|)
+      #|Response(pid={ id: 0 }, response=FsSucceeded(FsHandle(0)))
+      #|Invocation(pid={ id: 1 }, command=FsClose(0))
+      #|Response(pid={ id: 1 }, response=FsSucceeded(FsUnit))
+      #|Invocation(pid={ id: 2 }, command=FsWrite(0, "late write"))
+      #|Response(pid={ id: 2 }, response=FsFailed(FsHandleClosed))
+      #|
+    ),
+  )
 }
 
 ///|
@@ -1036,7 +1077,7 @@ test "qsm blog precondition still allows closed handle errors" {
 // The property verifies that the postcondition catches this mismatch and that
 // the recorded history contains the full three-command prefix needed to explain
 // the failure.
-test "qsm blog filesystem catches missing busy read check" {
+test "qsm filesystem catches missing busy read check" {
   let root = fs_root_dir()
   let a = fs_file(root, "a")
   let commands : Array[FsSymCommand] = [
@@ -1057,17 +1098,50 @@ test "qsm blog filesystem catches missing busy read check" {
         model~,
         next_model~,
         history~,
+        logic~,
         ..
       )
     ) else {
     fail("expected busy read mismatch")
   }
-  assert_eq(step_index, 2)
-  assert_true(command is FsRead(_))
-  assert_true(response is FsSucceeded(FsText("Hi")))
-  assert_true(fs_postcondition(model, command, response).eval() == false)
-  assert_true(next_model == model)
-  assert_eq(@quickcheck_statemachine.make_operations(history).length(), 3)
-  assert_eq(model.handles.length(), 1)
-  assert_true(model.handles[0].file == a)
+  inspect(
+    "\{step_index}: \{@debug.to_string(command)} -> \{@debug.to_string(response)}, postcondition=\{fs_postcondition(model, command, response).eval()}",
+    content=(
+      #|2: FsRead({ dir: { parts: [] }, name: "a" }) -> FsSucceeded(FsText("Hi")), postcondition=false
+    ),
+  )
+  inspect(
+    @debug.to_string(model),
+    content=(
+      #|{
+      #|  dirs: [{ parts: [] }],
+      #|  files: [{ file: { dir: { parts: [] }, name: "a" }, content: "Hi" }],
+      #|  handles: [{ handle: 0, file: { dir: { parts: [] }, name: "a" } }],
+      #|  next_handle: 1,
+      #|}
+    ),
+  )
+  inspect(next_model == model, content="true")
+  inspect(
+    @quickcheck_statemachine.format_history(history),
+    content=(
+      #|Invocation(
+      #|  pid={ id: 0 },
+      #|  command=FsOpen({ dir: { parts: [] }, name: "a" }),
+      #|)
+      #|Response(pid={ id: 0 }, response=FsSucceeded(FsHandle(0)))
+      #|Invocation(pid={ id: 1 }, command=FsWrite(0, "Hi"))
+      #|Response(pid={ id: 1 }, response=FsSucceeded(FsUnit))
+      #|Invocation(
+      #|  pid={ id: 2 },
+      #|  command=FsRead({ dir: { parts: [] }, name: "a" }),
+      #|)
+      #|Response(pid={ id: 2 }, response=FsSucceeded(FsText("Hi")))
+      #|
+    ),
+  )
+  inspect(
+    @quickcheck_statemachine.format_counterexample(logic.counterexample()),
+    content="filesystem response matches model",
+  )
 }

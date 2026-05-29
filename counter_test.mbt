@@ -3,7 +3,7 @@
 // The model is the single integer value that a correct mutable counter should
 // contain after each prefix of the command program. `CounterIncr` advances that
 // model by one, while `CounterGet` observes it. The property under test is the
-// basic state-machine lockstep property from the blogs: after each concrete
+// basic state-machine lockstep property : after each concrete
 // command, the observed response must match the response predicted by the pure
 // model.
 fn case_config(
@@ -188,9 +188,22 @@ test "counter passes against faithful implementation" {
     counter_script_spec(commands),
     config=case_config(max_commands=commands.length()),
   )
-  assert_eq(summary.cases_run, 1)
-  assert_eq(summary.commands_run, 4)
-  assert_eq(summary.command_distribution.length(), 2)
+  inspect(summary.cases_run, content="1")
+  inspect(summary.commands_run, content="4")
+  inspect(
+    @debug.to_string(summary.command_distribution),
+    content="[(\"incr\", 2), (\"get\", 2)]",
+  )
+  inspect(
+    @quickcheck_statemachine.format_commands(summary.commands),
+    content=(
+      #|0: CounterIncr -> CounterIncrDone
+      #|1: CounterGet -> CounterGot(1)
+      #|2: CounterIncr -> CounterIncrDone
+      #|3: CounterGet -> CounterGot(2)
+      #|
+    ),
+  )
 }
 
 ///|
@@ -215,15 +228,19 @@ test "counter catches value 42 increment bug" {
         model~,
         next_model~,
         commands~,
+        logic~,
         ..
       )
     ) else {
     fail("expected counter postcondition failure")
   }
-  assert_eq(step_index, 43)
-  assert_true(command is CounterGet)
-  assert_true(response is CounterGot(42))
-  assert_eq(model, 43)
-  assert_eq(next_model, 43)
-  assert_eq(commands.length(), 44)
+  inspect(
+    "\{step_index}: \{@debug.to_string(command)} -> \{@debug.to_string(response)}, model=\{model}, next=\{next_model}",
+    content="43: CounterGet -> CounterGot(42), model=43, next=43",
+  )
+  inspect(commands.length(), content="44")
+  inspect(
+    @quickcheck_statemachine.format_counterexample(logic.counterexample()),
+    content="counter response matches model",
+  )
 }
