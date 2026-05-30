@@ -1,3 +1,5 @@
+// ref: https://stevana.github.io/the_sad_state_of_property-based_testing_libraries.html
+
 ///|
 // Die Hard jug model and property:
 // The model is only the amount of water in the 5L
@@ -65,7 +67,25 @@ fn jug_name(command : JugCommand) -> String {
 }
 
 ///|
-fn jug_solution_spec() -> @quickcheck_statemachine.StateMachine[
+fn jug_generator(
+  model : JugModel,
+  size : Int,
+  rng : @splitmix.RandomState,
+) -> JugCommand? {
+  ignore(model)
+  ignore(size)
+  match rng.next_positive_int() % 6 {
+    0 => Some(JugFillBig)
+    1 => Some(JugFillSmall)
+    2 => Some(JugEmptyBig)
+    3 => Some(JugEmptySmall)
+    4 => Some(JugSmallIntoBig)
+    _ => Some(JugBigIntoSmall)
+  }
+}
+
+///|
+fn jug_search_spec() -> @quickcheck_statemachine.StateMachine[
   JugModel,
   JugModel,
   JugCommand,
@@ -75,31 +95,11 @@ fn jug_solution_spec() -> @quickcheck_statemachine.StateMachine[
   Unit,
   Unit,
 ] {
-  let commands : Array[JugCommand] = [
-    JugFillBig,
-    JugBigIntoSmall,
-    JugEmptySmall,
-    JugBigIntoSmall,
-    JugFillBig,
-    JugBigIntoSmall,
-  ]
-  let cursor : Array[Int] = [0]
   @quickcheck_statemachine.StateMachine::new(
     init_symbolic_model=() => { big_jug: 0, small_jug: 0 },
     init_concrete_model=() => { big_jug: 0, small_jug: 0 },
     init_system=() => (),
-    generator=(model, size, rng) => {
-      ignore(model)
-      ignore(size)
-      ignore(rng)
-      let index = cursor[0]
-      if index < commands.length() {
-        cursor[0] = index + 1
-        Some(commands[index])
-      } else {
-        None
-      }
-    },
+    generator=jug_generator,
     mock=(model, command, gen_sym) => {
       (jug_expected(jug_next(model, command)), gen_sym)
     },
@@ -158,16 +158,16 @@ test "die hard jug model covers alternate commands" {
 }
 
 ///|
-// Solution-as-counterexample regression:
+// Solution-as-counterexample search:
 // The real command runner always returns `JugDone`. The postcondition expects
 // `JugBigJugIs4` exactly when the model reaches four litres, so the runner
-// reports a postcondition failure at the final pour. This checks that a pure
-// state machine can be used to search for a witness, not only to compare a fake
-// against an implementation.
+// reports a postcondition failure when random generation reaches the puzzle
+// solution. Shrinking should then reduce the random program to the six-command
+// Die Hard trace from the blog.
 test "die hard jug reports the 4 liter solution" {
   let result = @quickcheck_statemachine.check(
-    jug_solution_spec(),
-    config=case_config(max_commands=6),
+    jug_search_spec(),
+    config=case_config(cases=10000, max_commands=12),
   )
   guard result
     is Err(
@@ -180,11 +180,16 @@ test "die hard jug reports the 4 liter solution" {
         commands~,
         history~,
         logic~,
+        shrinks~,
+        shrink_rounds~,
         ..
       )
     ) else {
     fail("expected jug solution to be reported as a postcondition failure")
   }
+  assert_true(shrinks > 0)
+  assert_true(shrink_rounds > 0)
+  assert_eq(commands.length(), 6)
   inspect(
     "\{step_index}: \{@debug.to_string(command)} -> \{@debug.to_string(response)}, model=\{@debug.to_string(model)}, next=\{@debug.to_string(next_model)}",
     content=(
