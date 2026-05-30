@@ -1,3 +1,5 @@
+// ref: https://stevana.github.io/the_sad_state_of_property-based_testing_libraries.html
+
 ///|
 // Counter model and property:
 // The model is the single integer value that a correct mutable counter should
@@ -11,6 +13,8 @@ fn case_config(
   cases? : Int = 1,
   max_tries? : Int = 10,
   shrink? : Bool = true,
+  max_shrinks? : Int = 100,
+  max_shrink_rounds? : Int = 20,
   required_labels? : Array[String] = [],
   required_command_names? : Array[String] = [],
 ) -> @quickcheck_statemachine.RunConfig {
@@ -21,8 +25,8 @@ fn case_config(
     size: max_commands,
     max_tries,
     shrink,
-    max_shrinks: 100,
-    max_shrink_rounds: 20,
+    max_shrinks,
+    max_shrink_rounds,
     required_labels,
     required_command_names,
   }
@@ -100,8 +104,23 @@ fn counter_name(command : CounterCommand) -> String {
 }
 
 ///|
-fn counter_script_spec(
-  commands : Array[CounterCommand],
+fn counter_generator(
+  model : Int,
+  size : Int,
+  rng : @splitmix.RandomState,
+) -> CounterCommand? {
+  ignore(model)
+  ignore(size)
+  if rng.next_positive_int() % 2 == 0 {
+    Some(CounterIncr)
+  } else {
+    Some(CounterGet)
+  }
+}
+
+///|
+fn counter_base_spec(
+  generator : (Int, Int, @splitmix.RandomState) -> CounterCommand?,
   run_command? : (CounterCommand, CounterSystem) -> CounterResponse = run_counter_command,
 ) -> @quickcheck_statemachine.StateMachine[
   Int,
@@ -113,23 +132,11 @@ fn counter_script_spec(
   Unit,
   CounterSystem,
 ] {
-  let cursor : Array[Int] = [0]
   @quickcheck_statemachine.StateMachine::new(
     init_symbolic_model=() => 0,
     init_concrete_model=() => 0,
     init_system=() => { value: 0 },
-    generator=(model, size, rng) => {
-      ignore(model)
-      ignore(size)
-      ignore(rng)
-      let index = cursor[0]
-      if index < commands.length() {
-        cursor[0] = index + 1
-        Some(commands[index])
-      } else {
-        None
-      }
-    },
+    generator~,
     mock=(model, command, gen_sym) => {
       (counter_expected(model, command), gen_sym)
     },
@@ -159,6 +166,54 @@ fn counter_script_spec(
     },
     command_name=counter_name,
   )
+}
+
+///|
+fn counter_script_spec(
+  commands : Array[CounterCommand],
+  run_command? : (CounterCommand, CounterSystem) -> CounterResponse = run_counter_command,
+) -> @quickcheck_statemachine.StateMachine[
+  Int,
+  Int,
+  CounterCommand,
+  CounterCommand,
+  CounterResponse,
+  CounterResponse,
+  Unit,
+  CounterSystem,
+] {
+  let cursor : Array[Int] = [0]
+  counter_base_spec(
+    (model, size, rng) => {
+      ignore(model)
+      ignore(size)
+      ignore(rng)
+      let index = cursor[0]
+      if index < commands.length() {
+        cursor[0] = index + 1
+        Some(commands[index])
+      } else {
+        None
+      }
+    },
+    run_command~,
+  )
+}
+
+///|
+fn counter_random_spec(
+  run_command? : (CounterCommand, CounterSystem) -> CounterResponse = run_counter_command,
+) -> @quickcheck_statemachine.StateMachine[
+  Int,
+  Int,
+  CounterCommand,
+  CounterCommand,
+  CounterResponse,
+  CounterResponse,
+  Unit,
+  CounterSystem,
+] {
+  counter_base_spec(counter_generator, run_command~)
 }
 
 ///|
@@ -207,6 +262,21 @@ test "counter passes against faithful implementation" {
 }
 
 ///|
+// Passing property:
+// This is the direct analogue of `quickCheck prop_counter`: generated command
+// programs are checked against the faithful counter implementation.
+test "counter random generation passes against faithful implementation" {
+  let summary = @quickcheck_statemachine.assert_check(
+    counter_random_spec(),
+    config=case_config(cases=100, max_commands=50, required_command_names=[
+      "incr", "get",
+    ]),
+  )
+  inspect(summary.cases_run, content="100")
+  inspect(summary.commands_run, content="5000")
+}
+
+///|
 // Bug-finding regression:
 // This mirrors the counter examples used to motivate stateful property tests:
 // a long prefix can move the implementation into a state where a later
@@ -243,4 +313,35 @@ test "counter catches value 42 increment bug" {
     @quickcheck_statemachine.format_counterexample(logic.counterexample()),
     content="counter response matches model",
   )
+}
+
+///|
+// Generated property:
+// Instead of replaying a hand-picked script, this lets the state-machine runner
+// generate many command programs from the model. The seeded run reliably reaches
+// the 42 bug, then dependency-free command deletion shrinks the failing program: 
+// many increments followed by the first observation that exposes the wrong state.
+test "counter random generation shrinks value 42 increment bug" {
+  let result = @quickcheck_statemachine.check(
+    counter_random_spec(run_command=run_counter_with_42_bug),
+    config=case_config(cases=100, max_commands=96, max_shrink_rounds=100),
+  )
+  guard result
+    is Err(
+      PostconditionFailed(
+        step_index~,
+        command~,
+        response~,
+        commands~,
+        shrinks~,
+        ..
+      )
+    ) else {
+    fail("expected generated counter postcondition failure")
+  }
+  assert_true(command is CounterGet)
+  assert_true(response is CounterGot(42))
+  assert_eq(step_index, 43)
+  assert_eq(commands.length(), 44)
+  assert_true(shrinks > 0)
 }
