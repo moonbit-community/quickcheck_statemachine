@@ -1,0 +1,274 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonbit-community/quickcheck_statemachine"
+
+import {
+  "moonbitlang/core/debug",
+  "moonbitlang/core/quickcheck/splitmix",
+}
+
+// Values
+pub fn[MSym : @debug.Debug, MCon : @debug.Debug, CSym : @debug.Debug, CCon : @debug.Debug, RSym : @debug.Debug, RCon : @debug.Debug, V, S] assert_check(StateMachine[MSym, MCon, CSym, CCon, RSym, RCon, V, S], config? : RunConfig) -> RunReport[CSym, RSym, CCon, RCon] raise
+
+pub fn[MSym : @debug.Debug, MCon : @debug.Debug, CSym : @debug.Debug, CCon : @debug.Debug, RSym : @debug.Debug, RCon : @debug.Debug, V, S] assert_replay(StateMachine[MSym, MCon, CSym, CCon, RSym, RCon, V, S], Commands[CSym, RSym], config? : RunConfig) -> RunReport[CSym, RSym, CCon, RCon] raise
+
+pub fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] check(StateMachine[MSym, MCon, CSym, CCon, RSym, RCon, V, S], config? : RunConfig) -> Result[RunReport[CSym, RSym, CCon, RCon], RunFailure[MSym, MCon, CSym, CCon, RSym, RCon]]
+
+pub fn[Model, Command, Response] classify(Labeler[Model, Command, Response], Event[Model, Command, Response]) -> Array[String]
+
+pub fn collect_labels(Array[String]) -> Array[String]
+
+pub fn[CSym, RSym] command_names(Commands[CSym, RSym], (CSym) -> String) -> Array[(String, Int)]
+
+pub fn[CSym, RSym] command_names_in_order(Commands[CSym, RSym], (CSym) -> String) -> Array[String]
+
+pub fn cover_command_names(Array[(String, Int)], Array[String]) -> Array[String]
+
+pub fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] first_failing_candidate(StateMachine[MSym, MCon, CSym, CCon, RSym, RCon, V, S], Array[Commands[CSym, RSym]], RunConfig) -> Commands[CSym, RSym]?
+
+pub fn[CSym : @debug.Debug, RSym : @debug.Debug] format_commands(Commands[CSym, RSym]) -> String
+
+pub fn format_counterexample(Counterexample) -> String
+
+pub fn[MSym : @debug.Debug, MCon : @debug.Debug, CSym : @debug.Debug, CCon : @debug.Debug, RSym : @debug.Debug, RCon : @debug.Debug] format_failure(RunFailure[MSym, MCon, CSym, CCon, RSym, RCon]) -> String
+
+pub fn[C : @debug.Debug, R : @debug.Debug] format_history(History[C, R]) -> String
+
+pub fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] generate_commands(StateMachine[MSym, MCon, CSym, CCon, RSym, RCon, V, S], config? : RunConfig) -> Result[Commands[CSym, RSym], GenerationFailure[MSym, CSym, RSym]]
+
+pub fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] generate_commands_with_seed(StateMachine[MSym, MCon, CSym, CCon, RSym, RCon, V, S], config? : RunConfig, seed? : UInt64) -> Result[Commands[CSym, RSym], GenerationFailure[MSym, CSym, RSym]]
+
+pub fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] generate_parallel_commands(StateMachine[MSym, MCon, CSym, CCon, RSym, RCon, V, S], config? : RunConfig) -> Result[ParallelCommands[CSym, RSym], GenerationFailure[MSym, CSym, RSym]]
+
+pub fn[CSym, RSym] linearise(ParallelCommands[CSym, RSym]) -> Commands[CSym, RSym]?
+
+pub fn[CSym, RSym] load_commands(String, (String) -> Result[Commands[CSym, RSym], String]) -> Result[Commands[CSym, RSym], String]
+
+pub fn logic_and(Logic, Logic) -> Logic
+
+pub fn logic_implies(Logic, Logic) -> Logic
+
+pub fn logic_not(Logic) -> Logic
+
+pub fn logic_or(Logic, Logic) -> Logic
+
+pub fn[C, R] make_operations(History[C, R]) -> Array[Operation[C, R]]
+
+pub fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] replay(StateMachine[MSym, MCon, CSym, CCon, RSym, RCon, V, S], Commands[CSym, RSym], config? : RunConfig) -> Result[RunReport[CSym, RSym, CCon, RCon], RunFailure[MSym, MCon, CSym, CCon, RSym, RCon]]
+
+pub fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] run_commands(StateMachine[MSym, MCon, CSym, CCon, RSym, RCon, V, S], Commands[CSym, RSym], config? : RunConfig) -> Result[RunReport[CSym, RSym, CCon, RCon], RunFailure[MSym, MCon, CSym, CCon, RSym, RCon]]
+
+pub fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] run_parallel_commands(StateMachine[MSym, MCon, CSym, CCon, RSym, RCon, V, S], ParallelCommands[CSym, RSym], config? : RunConfig) -> Result[RunReport[CSym, RSym, CCon, RCon], RunFailure[MSym, MCon, CSym, CCon, RSym, RCon]]
+
+pub fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] run_saved_commands(StateMachine[MSym, MCon, CSym, CCon, RSym, RCon, V, S], String, (String) -> Result[Commands[CSym, RSym], String], config? : RunConfig) -> Result[RunReport[CSym, RSym, CCon, RCon], RunFailure[MSym, MCon, CSym, CCon, RSym, RCon]]
+
+pub fn[CSym, RSym] save_commands(Commands[CSym, RSym], (Commands[CSym, RSym]) -> String) -> String
+
+pub fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] shrink_and_validate(StateMachine[MSym, MCon, CSym, CCon, RSym, RCon, V, S], Commands[CSym, RSym]) -> Commands[CSym, RSym]?
+
+pub fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] shrink_commands_once(StateMachine[MSym, MCon, CSym, CCon, RSym, RCon, V, S], Commands[CSym, RSym]) -> Array[Commands[CSym, RSym]]
+
+// Errors
+
+// Types and methods
+pub(all) enum BindError {
+  BindMessage(String)
+  BindVarCountMismatch(expected~ : Int, actual~ : Int)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Command[CSym, RSym] {
+  command : CSym
+  response : RSym
+  vars : Array[Var]
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Commands[CSym, RSym] {
+  commands : Array[Command[CSym, RSym]]
+} derive(Eq, @debug.Debug)
+pub fn[CSym, RSym] Commands::append(Self[CSym, RSym], Command[CSym, RSym]) -> Self[CSym, RSym]
+pub fn[CSym, RSym] Commands::concat(Self[CSym, RSym], Self[CSym, RSym]) -> Self[CSym, RSym]
+pub fn[CSym, RSym] Commands::empty() -> Self[CSym, RSym]
+pub fn[CSym, RSym] Commands::length(Self[CSym, RSym]) -> Int
+
+pub(all) struct Counterexample {
+  messages : Array[String]
+} derive(Eq, @debug.Debug)
+
+pub(all) enum EnvError {
+  MissingVar(Var)
+  DuplicateVar(Var)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Environment[V] {
+  bindings : Map[Var, V]
+} derive(@debug.Debug)
+pub fn[V] Environment::contains(Self[V], Var) -> Bool
+pub fn[V] Environment::empty() -> Self[V]
+pub fn[V] Environment::get(Self[V], Var) -> V?
+pub fn[V] Environment::insert(Self[V], Var, V) -> Self[V]
+pub fn[V] Environment::length(Self[V]) -> Int
+pub fn[V] Environment::lookup(Self[V], Var) -> Result[V, EnvError]
+pub fn[V] Environment::merge(Self[V], Self[V]) -> Result[Self[V], EnvError]
+
+pub(all) struct Event[Model, Command, Response] {
+  before_model : Model
+  command : Command
+  response : Response
+  after_model : Model
+} derive(Eq, @debug.Debug)
+
+pub(all) struct GenSym {
+  mut next : Int
+} derive(Eq, @debug.Debug)
+pub fn GenSym::fresh(Self) -> (Var, Self)
+pub fn GenSym::new() -> Self
+
+pub(all) enum GenerationFailure[MSym, CSym, RSym] {
+  InvalidGenerationConfig(String)
+  Deadlock(step_index~ : Int, model~ : MSym, commands~ : Commands[CSym, RSym], last_precondition~ : Logic?)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct History[C, R] {
+  events : Array[HistoryEvent[C, R]]
+} derive(Eq, @debug.Debug)
+pub fn[C, R] History::empty() -> Self[C, R]
+pub fn[C, R] History::push(Self[C, R], HistoryEvent[C, R]) -> Self[C, R]
+
+pub(all) enum HistoryEvent[C, R] {
+  Invocation(pid~ : Pid, command~ : C)
+  Response(pid~ : Pid, response~ : R)
+  Exception(pid~ : Pid, message~ : String)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Labeler[Model, Command, Response] {
+  classify : (Event[Model, Command, Response]) -> Array[String]
+}
+
+pub(all) enum Logic {
+  Top
+  Bot
+  Boolean(Bool)
+  Predicate(name~ : String, value~ : Bool)
+  And(Logic, Logic)
+  Or(Logic, Logic)
+  Implies(Logic, Logic)
+  Not(Logic)
+  Annotate(message~ : String, logic~ : Logic)
+} derive(Eq, @debug.Debug)
+pub fn Logic::annotate(Self, String) -> Self
+pub fn Logic::boolean(Bool) -> Self
+pub fn Logic::bot() -> Self
+pub fn Logic::check(Self) -> LogicValue
+pub fn Logic::counterexample(Self) -> Counterexample
+pub fn Logic::eval(Self) -> Bool
+pub fn Logic::predicate(name~ : String, value~ : Bool) -> Self
+pub fn Logic::top() -> Self
+
+pub(all) enum LogicValue {
+  Holds
+  Fails(Counterexample)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct NParallelCommands[CSym, RSym] {
+  prefix : Commands[CSym, RSym]
+  suffixes : Array[Commands[CSym, RSym]]
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Operation[C, R] {
+  pid : Pid
+  command : C
+  response : R?
+  exception : String?
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ParallelCommands[CSym, RSym] {
+  prefix : Commands[CSym, RSym]
+  left : Commands[CSym, RSym]
+  right : Commands[CSym, RSym]
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Pid {
+  id : Int
+} derive(Eq, Hash, @debug.Debug)
+
+pub(all) enum Ref[V] {
+  Symbolic(Var)
+  Concrete(V)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct RunConfig {
+  seed : UInt64
+  cases : Int
+  max_commands : Int
+  size : Int
+  max_tries : Int
+  shrink : Bool
+  max_shrinks : Int
+  max_shrink_rounds : Int
+  required_labels : Array[String]
+  required_command_names : Array[String]
+} derive(Eq, @debug.Debug)
+pub fn RunConfig::default() -> Self
+pub impl Default for RunConfig
+
+pub(all) enum RunFailure[MSym, MCon, CSym, CCon, RSym, RCon] {
+  InvalidConfig(String)
+  GenerationFailed(failure~ : GenerationFailure[MSym, CSym, RSym], shrinks~ : Int, shrink_rounds~ : Int)
+  InitFailed(commands~ : Commands[CSym, RSym], message~ : String, shrinks~ : Int, shrink_rounds~ : Int)
+  ReifyFailed(step_index~ : Int, symbolic_command~ : CSym, error~ : EnvError, commands~ : Commands[CSym, RSym], history~ : History[CCon, RCon], shrinks~ : Int, shrink_rounds~ : Int)
+  ExecutionFailed(step_index~ : Int, command~ : CCon, symbolic_command~ : CSym, model~ : MCon, commands~ : Commands[CSym, RSym], history~ : History[CCon, RCon], message~ : String, shrinks~ : Int, shrink_rounds~ : Int)
+  BindFailed(step_index~ : Int, symbolic_response~ : RSym, response~ : RCon, error~ : BindError, commands~ : Commands[CSym, RSym], history~ : History[CCon, RCon], shrinks~ : Int, shrink_rounds~ : Int)
+  PostconditionFailed(step_index~ : Int, command~ : CCon, symbolic_command~ : CSym, response~ : RCon, model~ : MCon, next_model~ : MCon, logic~ : Logic, commands~ : Commands[CSym, RSym], history~ : History[CCon, RCon], shrinks~ : Int, shrink_rounds~ : Int)
+  InvariantBroken(step_index~ : Int, model~ : MCon, logic~ : Logic, commands~ : Commands[CSym, RSym], history~ : History[CCon, RCon], shrinks~ : Int, shrink_rounds~ : Int)
+  CleanupFailed(commands~ : Commands[CSym, RSym], history~ : History[CCon, RCon], message~ : String, shrinks~ : Int, shrink_rounds~ : Int)
+  CoverageFailed(commands~ : Commands[CSym, RSym], history~ : History[CCon, RCon], missing_labels~ : Array[String], missing_command_names~ : Array[String], shrinks~ : Int, shrink_rounds~ : Int)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct RunReport[CSym, RSym, CCon, RCon] {
+  seed : UInt64
+  cases_run : Int
+  commands_run : Int
+  commands : Commands[CSym, RSym]
+  history : History[CCon, RCon]
+  labels : Array[String]
+  command_distribution : Array[(String, Int)]
+  shrinks : Int
+  shrink_rounds : Int
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ShrinkStats {
+  shrinks : Int
+  rounds : Int
+} derive(Eq, @debug.Debug)
+
+pub struct StateMachine[MSym, MCon, CSym, CCon, RSym, RCon, V, S] {
+  init_symbolic_model : () -> MSym
+  init_concrete_model : () -> MCon
+  init_system : () -> S raise
+  generator : (MSym, Int, @splitmix.RandomState) -> CSym?
+  mock : (MSym, CSym, GenSym) -> (RSym, GenSym)
+  response_vars : (RSym) -> Array[Var]
+  transition_symbolic : (MSym, CSym, RSym) -> MSym
+  transition_concrete : (MCon, CCon, RCon) -> MCon
+  precondition : (MSym, CSym) -> Logic
+  postcondition : (MCon, CCon, RCon) -> Logic
+  invariant : (MCon) -> Logic
+  shrinker : (MSym, CSym) -> Array[CSym]
+  remap_command : (CSym, Map[Var, Var]) -> CSym?
+  reify_command : (CSym, Environment[V]) -> Result[CCon, EnvError]
+  run_command : (CCon, S) -> RCon raise
+  bind_response : (RSym, RCon, Environment[V]) -> Result[Environment[V], BindError]
+  cleanup : (MCon, S) -> Unit raise
+  command_name : (CSym) -> String
+  label : (MCon, CCon, RCon) -> Array[String]
+}
+pub fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] StateMachine::new(init_symbolic_model~ : () -> MSym, init_concrete_model~ : () -> MCon, init_system~ : () -> S raise, generator~ : (MSym, Int, @splitmix.RandomState) -> CSym?, mock~ : (MSym, CSym, GenSym) -> (RSym, GenSym), transition_symbolic~ : (MSym, CSym, RSym) -> MSym, transition_concrete~ : (MCon, CCon, RCon) -> MCon, reify_command~ : (CSym, Environment[V]) -> Result[CCon, EnvError], run_command~ : (CCon, S) -> RCon raise, bind_response~ : (RSym, RCon, Environment[V]) -> Result[Environment[V], BindError], postcondition? : (MCon, CCon, RCon) -> Logic, precondition? : (MSym, CSym) -> Logic, invariant? : (MCon) -> Logic, response_vars? : (RSym) -> Array[Var], shrinker? : (MSym, CSym) -> Array[CSym], remap_command? : (CSym, Map[Var, Var]) -> CSym?, cleanup? : (MCon, S) -> Unit raise, command_name? : (CSym) -> String, label? : (MCon, CCon, RCon) -> Array[String]) -> Self[MSym, MCon, CSym, CCon, RSym, RCon, V, S]
+
+pub(all) struct Var {
+  id : Int
+} derive(Eq, Hash, @debug.Debug)
+pub fn Var::to_string(Self) -> String
+
+// Type aliases
+
+// Traits
+

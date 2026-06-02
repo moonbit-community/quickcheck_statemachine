@@ -1,0 +1,1383 @@
+// ref: https://www.well-typed.com/blog/2019/01/qsm-in-depth/
+
+///|
+// File-system model and property:
+// The concrete model records directories, file contents, open handles,
+// and the next handle id. The symbolic model mirrors that state but represents
+// files and handles returned by `open` as `Var`s, so the full command program
+// can be generated before any real handle exists. The core property is that
+// each real response agrees with the pure file-system model after reifying
+// symbolic references through the execution environment.
+struct FsDir {
+  parts : Array[String]
+} derive(Eq, Debug)
+
+///|
+struct FsFile {
+  dir : FsDir
+  name : String
+} derive(Eq, Debug)
+
+///|
+struct FsFileEntry {
+  file : FsFile
+  content : String
+} derive(Eq, Debug)
+
+///|
+struct FsOpenEntry {
+  handle : Int
+  file : FsFile
+} derive(Eq, Debug)
+
+///|
+// Concrete model:
+// This is the pure fake/reference implementation. `dirs` and `files` describe
+// durable file-system state, `handles` tracks currently open handles, and
+// `next_handle` predicts the next concrete handle returned by a successful open.
+struct FsModel {
+  dirs : Array[FsDir]
+  files : Array[FsFileEntry]
+  handles : Array[FsOpenEntry]
+  next_handle : Int
+} derive(Eq, Debug)
+
+///|
+struct FsSystem {
+  dirs : Array[FsDir]
+  files : Array[FsFileEntry]
+  mut handles : Array[FsOpenEntry]
+  mut next_handle : Int
+} derive(Eq, Debug)
+
+///|
+enum FsErr {
+  FsAlreadyExists
+  FsDoesNotExist
+  FsHandleClosed
+  FsBusy
+} derive(Eq, Debug)
+
+///|
+enum FsCommand {
+  FsMkDir(FsDir)
+  FsOpen(FsFile)
+  FsWrite(Int, String)
+  FsClose(Int)
+  FsRead(FsFile)
+} derive(Eq, Debug)
+
+///|
+enum FsSuccess {
+  FsUnit
+  FsHandle(FsFile, Int)
+  FsText(String)
+} derive(Eq, Debug)
+
+///|
+enum FsResponse {
+  FsSucceeded(FsSuccess)
+  FsFailed(FsErr)
+} derive(Eq, Debug)
+
+///|
+enum FsConcreteValue {
+  FsFileValue(FsFile)
+  FsHandleValue(Int)
+} derive(Eq, Debug)
+
+///|
+struct FsSymFileEntry {
+  file_ref : @quickcheck_statemachine.Var
+  file : FsFile
+} derive(Eq, Debug)
+
+///|
+struct FsSymOpenEntry {
+  handle : @quickcheck_statemachine.Var
+  file : FsFile
+} derive(Eq, Debug)
+
+///|
+// Symbolic model:
+// During generation we know which symbolic file and handle references have been
+// created, but not their concrete values. `handles` tracks currently open
+// symbolic handles, while `created_handles` deliberately keeps closed handles as
+// valid references so tests can exercise the `HandleClosed` error path.
+struct FsSymModel {
+  dirs : Array[FsDir]
+  files : Array[FsFileEntry]
+  file_refs : Array[FsSymFileEntry]
+  handles : Array[FsSymOpenEntry]
+  created_handles : Array[@quickcheck_statemachine.Var]
+} derive(Eq, Debug)
+
+///|
+enum FsFileExpr {
+  FsFileVal(FsFile)
+  FsFileRef(@quickcheck_statemachine.Ref[FsFile])
+} derive(Eq, Debug)
+
+///|
+enum FsSymCommand {
+  FsSymMkDir(FsDir)
+  FsSymOpen(FsFile)
+  FsSymWrite(@quickcheck_statemachine.Ref[Int], String)
+  FsSymClose(@quickcheck_statemachine.Ref[Int])
+  FsSymRead(FsFileExpr)
+} derive(Eq, Debug)
+
+///|
+enum FsSymSuccess {
+  FsSymUnit
+  FsSymHandle(@quickcheck_statemachine.Var, @quickcheck_statemachine.Var)
+  FsSymText(String)
+} derive(Eq, Debug)
+
+///|
+enum FsSymResponse {
+  FsSymSucceeded(FsSymSuccess)
+  FsSymFailed(FsErr)
+} derive(Eq, Debug)
+
+///|
+fn fs_dir(parts : Array[String]) -> FsDir {
+  { parts, }
+}
+
+///|
+fn fs_file(dir : FsDir, name : String) -> FsFile {
+  { dir, name }
+}
+
+///|
+fn fs_root_dir() -> FsDir {
+  fs_dir([])
+}
+
+///|
+fn fs_empty_model() -> FsModel {
+  { dirs: [fs_root_dir()], files: [], handles: [], next_handle: 0 }
+}
+
+///|
+fn fs_empty_sym_model() -> FsSymModel {
+  {
+    dirs: [fs_root_dir()],
+    files: [],
+    file_refs: [],
+    handles: [],
+    created_handles: [],
+  }
+}
+
+///|
+fn fs_new_system() -> FsSystem {
+  { dirs: [fs_root_dir()], files: [], handles: [], next_handle: 0 }
+}
+
+///|
+fn fs_dir_exists(dirs : Array[FsDir], dir : FsDir) -> Bool {
+  for i = 0; i < dirs.length(); {
+    if dirs[i] == dir {
+      break true
+    } else {
+      continue i + 1
+    }
+  } nobreak {
+    false
+  }
+}
+
+///|
+fn fs_parent_dir(dir : FsDir) -> FsDir? {
+  let len = dir.parts.length()
+  if len == 0 {
+    None
+  } else {
+    let parts : Array[String] = []
+    for i in 0..<(len - 1) {
+      parts.push(dir.parts[i])
+    }
+    Some({ parts, })
+  }
+}
+
+///|
+fn fs_parent_exists(dirs : Array[FsDir], dir : FsDir) -> Bool {
+  match fs_parent_dir(dir) {
+    None => true
+    Some(parent) => fs_dir_exists(dirs, parent)
+  }
+}
+
+///|
+fn fs_file_index(files : Array[FsFileEntry], file : FsFile) -> Int? {
+  for i = 0; i < files.length(); {
+    if files[i].file == file {
+      break Some(i)
+    } else {
+      continue i + 1
+    }
+  } nobreak {
+    None
+  }
+}
+
+///|
+fn fs_open_index(handles : Array[FsOpenEntry], handle : Int) -> Int? {
+  for i = 0; i < handles.length(); {
+    if handles[i].handle == handle {
+      break Some(i)
+    } else {
+      continue i + 1
+    }
+  } nobreak {
+    None
+  }
+}
+
+///|
+fn fs_sym_open_index(
+  handles : Array[FsSymOpenEntry],
+  handle : @quickcheck_statemachine.Var,
+) -> Int? {
+  for i = 0; i < handles.length(); {
+    if handles[i].handle == handle {
+      break Some(i)
+    } else {
+      continue i + 1
+    }
+  } nobreak {
+    None
+  }
+}
+
+///|
+fn fs_sym_handle_created(
+  model : FsSymModel,
+  handle : @quickcheck_statemachine.Var,
+) -> Bool {
+  for created in model.created_handles {
+    if created == handle {
+      return true
+    }
+  }
+  false
+}
+
+///|
+fn fs_sym_file_ref(
+  model : FsSymModel,
+  file_ref : @quickcheck_statemachine.Var,
+) -> FsFile? {
+  for entry in model.file_refs {
+    if entry.file_ref == file_ref {
+      return Some(entry.file)
+    }
+  }
+  None
+}
+
+///|
+fn fs_sym_file_ref_created(
+  model : FsSymModel,
+  file_ref : @quickcheck_statemachine.Var,
+) -> Bool {
+  fs_sym_file_ref(model, file_ref) is Some(_)
+}
+
+///|
+fn fs_sym_eval_file_expr(model : FsSymModel, file_expr : FsFileExpr) -> FsFile? {
+  match file_expr {
+    FsFileVal(file) => Some(file)
+    FsFileRef(Concrete(file)) => Some(file)
+    FsFileRef(Symbolic(file_ref)) => fs_sym_file_ref(model, file_ref)
+  }
+}
+
+///|
+fn fs_file_is_open(handles : Array[FsOpenEntry], file : FsFile) -> Bool {
+  for i = 0; i < handles.length(); {
+    if handles[i].file == file {
+      break true
+    } else {
+      continue i + 1
+    }
+  } nobreak {
+    false
+  }
+}
+
+///|
+fn fs_sym_file_is_open(handles : Array[FsSymOpenEntry], file : FsFile) -> Bool {
+  for i = 0; i < handles.length(); {
+    if handles[i].file == file {
+      break true
+    } else {
+      continue i + 1
+    }
+  } nobreak {
+    false
+  }
+}
+
+///|
+fn fs_write_file(
+  files : Array[FsFileEntry],
+  file : FsFile,
+  content : String,
+) -> Array[FsFileEntry] {
+  let next = files.copy()
+  match fs_file_index(next, file) {
+    Some(index) => next[index] = { file, content }
+    None => next.push({ file, content })
+  }
+  next
+}
+
+///|
+fn fs_remove_open(
+  handles : Array[FsOpenEntry],
+  handle : Int,
+) -> Array[FsOpenEntry] {
+  let next : Array[FsOpenEntry] = []
+  for entry in handles {
+    if entry.handle != handle {
+      next.push(entry)
+    }
+  }
+  next
+}
+
+///|
+fn fs_sym_remove_open(
+  handles : Array[FsSymOpenEntry],
+  handle : @quickcheck_statemachine.Var,
+) -> Array[FsSymOpenEntry] {
+  let next : Array[FsSymOpenEntry] = []
+  for entry in handles {
+    if entry.handle != handle {
+      next.push(entry)
+    }
+  }
+  next
+}
+
+///|
+fn fs_model_mkdir(model : FsModel, dir : FsDir) -> (FsResponse, FsModel) {
+  if fs_dir_exists(model.dirs, dir) {
+    (FsFailed(FsAlreadyExists), model)
+  } else if !fs_parent_exists(model.dirs, dir) {
+    (FsFailed(FsDoesNotExist), model)
+  } else {
+    let dirs = model.dirs.copy()
+    dirs.push(dir)
+    (
+      FsSucceeded(FsUnit),
+      {
+        dirs,
+        files: model.files,
+        handles: model.handles,
+        next_handle: model.next_handle,
+      },
+    )
+  }
+}
+
+///|
+fn fs_model_open(model : FsModel, file : FsFile) -> (FsResponse, FsModel) {
+  if !fs_dir_exists(model.dirs, file.dir) {
+    (FsFailed(FsDoesNotExist), model)
+  } else if fs_file_is_open(model.handles, file) {
+    (FsFailed(FsBusy), model)
+  } else {
+    let files = model.files.copy()
+    if fs_file_index(files, file) is None {
+      files.push({ file, content: "" })
+    }
+    let handle = model.next_handle
+    let handles = model.handles.copy()
+    handles.push({ handle, file })
+    (
+      FsSucceeded(FsHandle(file, handle)),
+      { dirs: model.dirs, files, handles, next_handle: handle + 1 },
+    )
+  }
+}
+
+///|
+fn fs_model_write(
+  model : FsModel,
+  handle : Int,
+  content : String,
+) -> (FsResponse, FsModel) {
+  match fs_open_index(model.handles, handle) {
+    None => (FsFailed(FsHandleClosed), model)
+    Some(index) => {
+      let files = fs_write_file(model.files, model.handles[index].file, content)
+      (
+        FsSucceeded(FsUnit),
+        {
+          dirs: model.dirs,
+          files,
+          handles: model.handles,
+          next_handle: model.next_handle,
+        },
+      )
+    }
+  }
+}
+
+///|
+fn fs_model_close(model : FsModel, handle : Int) -> (FsResponse, FsModel) {
+  match fs_open_index(model.handles, handle) {
+    None => (FsFailed(FsHandleClosed), model)
+    Some(_) =>
+      (
+        FsSucceeded(FsUnit),
+        {
+          dirs: model.dirs,
+          files: model.files,
+          handles: fs_remove_open(model.handles, handle),
+          next_handle: model.next_handle,
+        },
+      )
+  }
+}
+
+///|
+fn fs_model_read(model : FsModel, file : FsFile) -> (FsResponse, FsModel) {
+  if fs_file_is_open(model.handles, file) {
+    (FsFailed(FsBusy), model)
+  } else {
+    match fs_file_index(model.files, file) {
+      Some(index) => (FsSucceeded(FsText(model.files[index].content)), model)
+      None => (FsFailed(FsDoesNotExist), model)
+    }
+  }
+}
+
+///|
+fn fs_model_run(command : FsCommand, model : FsModel) -> (FsResponse, FsModel) {
+  match command {
+    FsMkDir(dir) => fs_model_mkdir(model, dir)
+    FsOpen(file) => fs_model_open(model, file)
+    FsWrite(handle, content) => fs_model_write(model, handle, content)
+    FsClose(handle) => fs_model_close(model, handle)
+    FsRead(file) => fs_model_read(model, file)
+  }
+}
+
+///|
+fn fs_system_mkdir(system : FsSystem, dir : FsDir) -> FsResponse {
+  if fs_dir_exists(system.dirs, dir) {
+    FsFailed(FsAlreadyExists)
+  } else if !fs_parent_exists(system.dirs, dir) {
+    FsFailed(FsDoesNotExist)
+  } else {
+    system.dirs.push(dir)
+    FsSucceeded(FsUnit)
+  }
+}
+
+///|
+fn fs_system_open(system : FsSystem, file : FsFile) -> FsResponse {
+  if !fs_dir_exists(system.dirs, file.dir) {
+    FsFailed(FsDoesNotExist)
+  } else if fs_file_is_open(system.handles, file) {
+    FsFailed(FsBusy)
+  } else {
+    if fs_file_index(system.files, file) is None {
+      system.files.push({ file, content: "" })
+    }
+    let handle = system.next_handle
+    system.next_handle += 1
+    system.handles.push({ handle, file })
+    FsSucceeded(FsHandle(file, handle))
+  }
+}
+
+///|
+fn fs_system_write(
+  system : FsSystem,
+  handle : Int,
+  content : String,
+) -> FsResponse {
+  match fs_open_index(system.handles, handle) {
+    None => FsFailed(FsHandleClosed)
+    Some(index) => {
+      match fs_file_index(system.files, system.handles[index].file) {
+        Some(file_index) =>
+          system.files[file_index] = {
+            file: system.handles[index].file,
+            content,
+          }
+        None => system.files.push({ file: system.handles[index].file, content })
+      }
+      FsSucceeded(FsUnit)
+    }
+  }
+}
+
+///|
+fn fs_system_close(system : FsSystem, handle : Int) -> FsResponse {
+  match fs_open_index(system.handles, handle) {
+    None => FsFailed(FsHandleClosed)
+    Some(_) => {
+      system.handles = fs_remove_open(system.handles, handle)
+      FsSucceeded(FsUnit)
+    }
+  }
+}
+
+///|
+fn fs_system_read(system : FsSystem, file : FsFile) -> FsResponse {
+  if fs_file_is_open(system.handles, file) {
+    FsFailed(FsBusy)
+  } else {
+    match fs_file_index(system.files, file) {
+      Some(index) => FsSucceeded(FsText(system.files[index].content))
+      None => FsFailed(FsDoesNotExist)
+    }
+  }
+}
+
+///|
+fn fs_system_read_without_busy_check(
+  system : FsSystem,
+  file : FsFile,
+) -> FsResponse {
+  match fs_file_index(system.files, file) {
+    Some(index) => FsSucceeded(FsText(system.files[index].content))
+    None => FsFailed(FsDoesNotExist)
+  }
+}
+
+///|
+fn run_fs_command(command : FsCommand, system : FsSystem) -> FsResponse {
+  match command {
+    FsMkDir(dir) => fs_system_mkdir(system, dir)
+    FsOpen(file) => fs_system_open(system, file)
+    FsWrite(handle, content) => fs_system_write(system, handle, content)
+    FsClose(handle) => fs_system_close(system, handle)
+    FsRead(file) => fs_system_read(system, file)
+  }
+}
+
+///|
+fn run_fs_command_without_busy_check(
+  command : FsCommand,
+  system : FsSystem,
+) -> FsResponse {
+  match command {
+    FsRead(file) => fs_system_read_without_busy_check(system, file)
+    _ => run_fs_command(command, system)
+  }
+}
+
+///|
+fn fs_transition(
+  model : FsModel,
+  command : FsCommand,
+  response : FsResponse,
+) -> FsModel {
+  ignore(response)
+  let (_, next_model) = fs_model_run(command, model)
+  next_model
+}
+
+///|
+// Concrete postcondition:
+// Execute the same command in the pure model and compare its predicted response
+// with the response observed from the mutable system. This is the lockstep
+// comparison described in the QSM article: the model both predicts the response
+// and advances to the next reference state.
+fn fs_postcondition(
+  model : FsModel,
+  command : FsCommand,
+  response : FsResponse,
+) -> @quickcheck_statemachine.Logic {
+  let (expected, _) = fs_model_run(command, model)
+  @quickcheck_statemachine.Logic::predicate(
+    name="filesystem response matches model",
+    value=response == expected,
+  )
+}
+
+///|
+fn fs_sym_mkdir(model : FsSymModel, dir : FsDir) -> FsSymResponse {
+  if fs_dir_exists(model.dirs, dir) {
+    FsSymFailed(FsAlreadyExists)
+  } else if !fs_parent_exists(model.dirs, dir) {
+    FsSymFailed(FsDoesNotExist)
+  } else {
+    FsSymSucceeded(FsSymUnit)
+  }
+}
+
+///|
+fn fs_sym_open(
+  model : FsSymModel,
+  file : FsFile,
+  gen_sym : @quickcheck_statemachine.GenSym,
+) -> (FsSymResponse, @quickcheck_statemachine.GenSym) {
+  if !fs_dir_exists(model.dirs, file.dir) {
+    (FsSymFailed(FsDoesNotExist), gen_sym)
+  } else if fs_sym_file_is_open(model.handles, file) {
+    (FsSymFailed(FsBusy), gen_sym)
+  } else {
+    let (file_ref, next_gen_sym) = gen_sym.fresh()
+    let (handle, next_next_gen_sym) = next_gen_sym.fresh()
+    (FsSymSucceeded(FsSymHandle(file_ref, handle)), next_next_gen_sym)
+  }
+}
+
+///|
+fn fs_sym_write(
+  model : FsSymModel,
+  handle : @quickcheck_statemachine.Ref[Int],
+) -> FsSymResponse {
+  match handle {
+    Symbolic(var_ref) =>
+      if fs_sym_open_index(model.handles, var_ref) is Some(_) {
+        FsSymSucceeded(FsSymUnit)
+      } else {
+        FsSymFailed(FsHandleClosed)
+      }
+    Concrete(_) => FsSymSucceeded(FsSymUnit)
+  }
+}
+
+///|
+fn fs_sym_close(
+  model : FsSymModel,
+  handle : @quickcheck_statemachine.Ref[Int],
+) -> FsSymResponse {
+  fs_sym_write(model, handle)
+}
+
+///|
+fn fs_sym_read(model : FsSymModel, file_expr : FsFileExpr) -> FsSymResponse {
+  match fs_sym_eval_file_expr(model, file_expr) {
+    None => FsSymFailed(FsDoesNotExist)
+    Some(file) =>
+      if fs_sym_file_is_open(model.handles, file) {
+        FsSymFailed(FsBusy)
+      } else {
+        match fs_file_index(model.files, file) {
+          Some(index) => FsSymSucceeded(FsSymText(model.files[index].content))
+          None => FsSymFailed(FsDoesNotExist)
+        }
+      }
+  }
+}
+
+///|
+// Symbolic mock response:
+// Open commands allocate fresh variables with `GenSym`; later write/close
+// commands can refer to those variables before execution has produced concrete
+// handles. This is the MoonBit version of QSM's symbolic/concrete reference
+// split.
+fn fs_sym_mock(
+  model : FsSymModel,
+  command : FsSymCommand,
+  gen_sym : @quickcheck_statemachine.GenSym,
+) -> (FsSymResponse, @quickcheck_statemachine.GenSym) {
+  match command {
+    FsSymMkDir(dir) => (fs_sym_mkdir(model, dir), gen_sym)
+    FsSymOpen(file) => fs_sym_open(model, file, gen_sym)
+    FsSymWrite(handle, _) => (fs_sym_write(model, handle), gen_sym)
+    FsSymClose(handle) => (fs_sym_close(model, handle), gen_sym)
+    FsSymRead(file) => (fs_sym_read(model, file), gen_sym)
+  }
+}
+
+///|
+fn fs_sym_transition(
+  model : FsSymModel,
+  command : FsSymCommand,
+  response : FsSymResponse,
+) -> FsSymModel {
+  match (command, response) {
+    (FsSymMkDir(dir), FsSymSucceeded(FsSymUnit)) => {
+      let dirs = model.dirs.copy()
+      dirs.push(dir)
+      {
+        dirs,
+        files: model.files,
+        file_refs: model.file_refs,
+        handles: model.handles,
+        created_handles: model.created_handles,
+      }
+    }
+    (FsSymOpen(file), FsSymSucceeded(FsSymHandle(file_ref, handle))) => {
+      let files = model.files.copy()
+      if fs_file_index(files, file) is None {
+        files.push({ file, content: "" })
+      }
+      let file_refs = model.file_refs.copy()
+      file_refs.push({ file_ref, file })
+      let handles = model.handles.copy()
+      handles.push({ handle, file })
+      let created_handles = model.created_handles.copy()
+      created_handles.push(handle)
+      { dirs: model.dirs, files, file_refs, handles, created_handles }
+    }
+    (FsSymWrite(Symbolic(handle), content), FsSymSucceeded(FsSymUnit)) =>
+      match fs_sym_open_index(model.handles, handle) {
+        None => model
+        Some(index) => {
+          let files = fs_write_file(
+            model.files,
+            model.handles[index].file,
+            content,
+          )
+          {
+            dirs: model.dirs,
+            files,
+            file_refs: model.file_refs,
+            handles: model.handles,
+            created_handles: model.created_handles,
+          }
+        }
+      }
+    (FsSymClose(Symbolic(handle)), FsSymSucceeded(FsSymUnit)) =>
+      {
+        dirs: model.dirs,
+        files: model.files,
+        file_refs: model.file_refs,
+        handles: fs_sym_remove_open(model.handles, handle),
+        created_handles: model.created_handles,
+      }
+    _ => model
+  }
+}
+
+///|
+// Liberal precondition:
+// The QSM article stresses that preconditions should reject impossible programs,
+// not interesting error cases. We reject references to handles that were never
+// produced by an open command, because they cannot be reified. We still allow
+// operations on closed handles so the model can check that the implementation
+// returns `HandleClosed` rather than hiding that behavior from generation and
+// shrinking.
+fn fs_sym_precondition(
+  model : FsSymModel,
+  command : FsSymCommand,
+) -> @quickcheck_statemachine.Logic {
+  let ok = match command {
+    FsSymWrite(Symbolic(handle), _) | FsSymClose(Symbolic(handle)) =>
+      fs_sym_handle_created(model, handle)
+    FsSymWrite(Concrete(_), _) | FsSymClose(Concrete(_)) => true
+    FsSymRead(FsFileRef(Symbolic(file_ref))) =>
+      fs_sym_file_ref_created(model, file_ref)
+    FsSymMkDir(_) | FsSymOpen(_) | FsSymRead(_) => true
+  }
+  @quickcheck_statemachine.Logic::predicate(
+    name="filesystem precondition",
+    value=ok,
+  )
+}
+
+///|
+fn fs_sym_response_vars(
+  response : FsSymResponse,
+) -> Array[@quickcheck_statemachine.Var] {
+  match response {
+    FsSymSucceeded(FsSymHandle(file_ref, handle)) => [file_ref, handle]
+    _ => []
+  }
+}
+
+///|
+fn fs_reify_handle_ref(
+  handle : @quickcheck_statemachine.Ref[Int],
+  environment : @quickcheck_statemachine.Environment[FsConcreteValue],
+) -> Result[Int, @quickcheck_statemachine.EnvError] {
+  match handle {
+    Concrete(value) => Ok(value)
+    Symbolic(var_ref) =>
+      match environment.lookup(var_ref) {
+        Ok(FsHandleValue(value)) => Ok(value)
+        Ok(FsFileValue(_)) => Err(MissingVar(var_ref))
+        Err(error) => Err(error)
+      }
+  }
+}
+
+///|
+fn fs_reify_file_ref(
+  file_ref : @quickcheck_statemachine.Ref[FsFile],
+  environment : @quickcheck_statemachine.Environment[FsConcreteValue],
+) -> Result[FsFile, @quickcheck_statemachine.EnvError] {
+  match file_ref {
+    Concrete(file) => Ok(file)
+    Symbolic(var_ref) =>
+      match environment.lookup(var_ref) {
+        Ok(FsFileValue(file)) => Ok(file)
+        Ok(FsHandleValue(_)) => Err(MissingVar(var_ref))
+        Err(error) => Err(error)
+      }
+  }
+}
+
+///|
+fn fs_reify_file_expr(
+  file_expr : FsFileExpr,
+  environment : @quickcheck_statemachine.Environment[FsConcreteValue],
+) -> Result[FsFile, @quickcheck_statemachine.EnvError] {
+  match file_expr {
+    FsFileVal(file) => Ok(file)
+    FsFileRef(file_ref) => fs_reify_file_ref(file_ref, environment)
+  }
+}
+
+///|
+fn fs_reify_command(
+  command : FsSymCommand,
+  environment : @quickcheck_statemachine.Environment[FsConcreteValue],
+) -> Result[FsCommand, @quickcheck_statemachine.EnvError] {
+  match command {
+    FsSymMkDir(dir) => Ok(FsMkDir(dir))
+    FsSymOpen(file) => Ok(FsOpen(file))
+    FsSymWrite(handle, content) =>
+      match fs_reify_handle_ref(handle, environment) {
+        Ok(value) => Ok(FsWrite(value, content))
+        Err(error) => Err(error)
+      }
+    FsSymClose(handle) =>
+      match fs_reify_handle_ref(handle, environment) {
+        Ok(value) => Ok(FsClose(value))
+        Err(error) => Err(error)
+      }
+    FsSymRead(file_expr) =>
+      match fs_reify_file_expr(file_expr, environment) {
+        Ok(file) => Ok(FsRead(file))
+        Err(error) => Err(error)
+      }
+  }
+}
+
+///|
+fn fs_bind_response(
+  symbolic : FsSymResponse,
+  concrete : FsResponse,
+  environment : @quickcheck_statemachine.Environment[FsConcreteValue],
+) -> Result[
+  @quickcheck_statemachine.Environment[FsConcreteValue],
+  @quickcheck_statemachine.BindError,
+] {
+  match (symbolic, concrete) {
+    (
+      FsSymSucceeded(FsSymHandle(file_ref, handle_ref)),
+      FsSucceeded(FsHandle(file, handle)),
+    ) => {
+      let with_file = environment.insert(file_ref, FsFileValue(file))
+      Ok(with_file.insert(handle_ref, FsHandleValue(handle)))
+    }
+    (FsSymSucceeded(FsSymHandle(_, _)), _) =>
+      Err(BindMessage("expected concrete handle"))
+    _ => Ok(environment)
+  }
+}
+
+///|
+fn[V] fs_remap_ref(
+  reference : @quickcheck_statemachine.Ref[V],
+  scope : Map[@quickcheck_statemachine.Var, @quickcheck_statemachine.Var],
+) -> @quickcheck_statemachine.Ref[V]? {
+  match reference {
+    Concrete(value) => Some(Concrete(value))
+    Symbolic(var_ref) =>
+      match scope.get(var_ref) {
+        None => None
+        Some(next_var) => Some(Symbolic(next_var))
+      }
+  }
+}
+
+///|
+fn fs_remap_file_expr(
+  file_expr : FsFileExpr,
+  scope : Map[@quickcheck_statemachine.Var, @quickcheck_statemachine.Var],
+) -> FsFileExpr? {
+  match file_expr {
+    FsFileVal(file) => Some(FsFileVal(file))
+    FsFileRef(file_ref) =>
+      match fs_remap_ref(file_ref, scope) {
+        None => None
+        Some(next_file_ref) => Some(FsFileRef(next_file_ref))
+      }
+  }
+}
+
+///|
+// Dependency-aware remapping:
+// Shrinking may delete an earlier `open`. Any later command that used the
+// deleted symbolic file or handle must then be rejected, while surviving
+// references are remapped to the fresh variables produced by the rebuilt
+// program.
+fn fs_remap_command(
+  command : FsSymCommand,
+  scope : Map[@quickcheck_statemachine.Var, @quickcheck_statemachine.Var],
+) -> FsSymCommand? {
+  match command {
+    FsSymMkDir(dir) => Some(FsSymMkDir(dir))
+    FsSymOpen(file) => Some(FsSymOpen(file))
+    FsSymWrite(handle, content) =>
+      match fs_remap_ref(handle, scope) {
+        None => None
+        Some(next_handle) => Some(FsSymWrite(next_handle, content))
+      }
+    FsSymClose(handle) =>
+      match fs_remap_ref(handle, scope) {
+        None => None
+        Some(next_handle) => Some(FsSymClose(next_handle))
+      }
+    FsSymRead(file_expr) =>
+      match fs_remap_file_expr(file_expr, scope) {
+        None => None
+        Some(next_file_expr) => Some(FsSymRead(next_file_expr))
+      }
+  }
+}
+
+///|
+fn fs_sym_name(command : FsSymCommand) -> String {
+  match command {
+    FsSymMkDir(_) => "mkdir"
+    FsSymOpen(_) => "open"
+    FsSymWrite(_, _) => "write"
+    FsSymClose(_) => "close"
+    FsSymRead(_) => "read"
+  }
+}
+
+///|
+fn fs_shrinker(
+  model : FsSymModel,
+  command : FsSymCommand,
+) -> Array[FsSymCommand] {
+  match command {
+    FsSymRead(FsFileVal(file)) => {
+      let shrinks : Array[FsSymCommand] = []
+      for entry in model.file_refs {
+        if entry.file == file {
+          shrinks.push(FsSymRead(FsFileRef(Symbolic(entry.file_ref))))
+        }
+      }
+      shrinks
+    }
+    _ => []
+  }
+}
+
+///|
+// Labels used as coverage diagnostics:
+// The file-system example uses labels to make sure generated
+// programs cover meaningful behaviors, not just arbitrary command names. These
+// labels identify multi-open scenarios, successful reads, closed-handle writes,
+// and busy reads.
+fn fs_label(
+  model : FsModel,
+  command : FsCommand,
+  response : FsResponse,
+) -> Array[String] {
+  let labels : Array[String] = []
+  match (command, response) {
+    (FsOpen(_), FsSucceeded(FsHandle(_, _))) =>
+      if model.handles.length() == 1 {
+        labels.push("OpenTwo")
+      }
+    (FsRead(_), FsSucceeded(FsText(_))) => labels.push("SuccessfulRead")
+    (FsWrite(_, _), FsFailed(FsHandleClosed)) =>
+      labels.push("ClosedHandleWrite")
+    (FsRead(_), FsFailed(FsBusy)) => labels.push("BusyRead")
+    _ => ()
+  }
+  labels
+}
+
+///|
+fn fs_script_spec(
+  commands : Array[FsSymCommand],
+  run_command? : (FsCommand, FsSystem) -> FsResponse = run_fs_command,
+) -> @quickcheck_statemachine.StateMachine[
+  FsSymModel,
+  FsModel,
+  FsSymCommand,
+  FsCommand,
+  FsSymResponse,
+  FsResponse,
+  FsConcreteValue,
+  FsSystem,
+] {
+  let cursor : Array[Int] = [0]
+  @quickcheck_statemachine.StateMachine::new(
+    init_symbolic_model=fs_empty_sym_model,
+    init_concrete_model=fs_empty_model,
+    init_system=() => fs_new_system(),
+    generator=(model, size, rng) => {
+      ignore(model)
+      ignore(size)
+      ignore(rng)
+      let index = cursor[0]
+      if index < commands.length() {
+        cursor[0] = index + 1
+        Some(commands[index])
+      } else {
+        None
+      }
+    },
+    mock=fs_sym_mock,
+    response_vars=fs_sym_response_vars,
+    transition_symbolic=fs_sym_transition,
+    transition_concrete=fs_transition,
+    precondition=fs_sym_precondition,
+    reify_command=fs_reify_command,
+    run_command=(command, system) => run_command(command, system),
+    bind_response=fs_bind_response,
+    shrinker=fs_shrinker,
+    remap_command=fs_remap_command,
+    postcondition=fs_postcondition,
+    command_name=fs_sym_name,
+    label=fs_label,
+  )
+}
+
+///|
+fn symbolic_file(id : Int) -> @quickcheck_statemachine.Ref[FsFile] {
+  Symbolic({ id, })
+}
+
+///|
+fn symbolic_handle(id : Int) -> @quickcheck_statemachine.Ref[Int] {
+  Symbolic({ id, })
+}
+
+///|
+fn fs_commands_contain_read_file_ref(
+  commands : @quickcheck_statemachine.Commands[FsSymCommand, FsSymResponse],
+  id : Int,
+) -> Bool {
+  for entry in commands.commands {
+    match entry.command {
+      FsSymRead(FsFileRef(Symbolic(file_ref))) =>
+        if file_ref.id == id {
+          return true
+        }
+      _ => ()
+    }
+  }
+  false
+}
+
+///|
+fn fs_unknown_handle_probe_spec() -> @quickcheck_statemachine.StateMachine[
+  FsSymModel,
+  FsModel,
+  FsSymCommand,
+  FsCommand,
+  FsSymResponse,
+  FsResponse,
+  FsConcreteValue,
+  FsSystem,
+] {
+  @quickcheck_statemachine.StateMachine::new(
+    init_symbolic_model=fs_empty_sym_model,
+    init_concrete_model=fs_empty_model,
+    init_system=() => fs_new_system(),
+    generator=(model, size, rng) => {
+      ignore(model)
+      ignore(size)
+      ignore(rng)
+      Some(FsSymWrite(symbolic_handle(0), "orphan"))
+    },
+    mock=fs_sym_mock,
+    response_vars=fs_sym_response_vars,
+    transition_symbolic=fs_sym_transition,
+    transition_concrete=fs_transition,
+    precondition=fs_sym_precondition,
+    reify_command=fs_reify_command,
+    run_command=(command, system) => run_fs_command(command, system),
+    bind_response=fs_bind_response,
+    remap_command=fs_remap_command,
+    postcondition=fs_postcondition,
+    command_name=fs_sym_name,
+    label=fs_label,
+  )
+}
+
+///|
+// Symbolic-handle scenario:
+// This hand-written program is the concrete form of 
+// "open a, open b, write through the symbolic handles, close, then read". The
+// property checks that the program can be generated before concrete handles
+// exist, reified at execution time, and still satisfy the pure model. The
+// required labels assert that the scenario covers both multiple open handles and
+// at least one successful read.
+test "qsm filesystem open-write-read examples pass with symbolic handles" {
+  let root = fs_root_dir()
+  let z = fs_dir(["z"])
+  let a = fs_file(root, "a")
+  let b = fs_file(root, "b")
+  let z_b = fs_file(z, "b")
+  let commands : Array[FsSymCommand] = [
+    FsSymOpen(a),
+    FsSymOpen(b),
+    FsSymWrite(symbolic_handle(1), "Hi"),
+    FsSymWrite(symbolic_handle(3), "Bye"),
+    FsSymClose(symbolic_handle(1)),
+    FsSymRead(FsFileRef(symbolic_file(0))),
+    FsSymClose(symbolic_handle(3)),
+    FsSymRead(FsFileRef(symbolic_file(2))),
+    FsSymMkDir(z),
+    FsSymOpen(z_b),
+    FsSymClose(symbolic_handle(5)),
+    FsSymRead(FsFileRef(symbolic_file(4))),
+  ]
+  let summary = @quickcheck_statemachine.assert_check(
+    fs_script_spec(commands),
+    config=case_config(max_commands=commands.length(), required_labels=[
+      "OpenTwo", "SuccessfulRead",
+    ]),
+  )
+  inspect(summary.commands_run, content="12")
+  inspect(
+    @debug.to_string(summary.labels),
+    content="[\"OpenTwo\", \"SuccessfulRead\"]",
+  )
+  inspect(
+    @quickcheck_statemachine.format_commands(summary.commands),
+    content=(
+      #|0: FsSymOpen({ dir: { parts: [] }, name: "a" }) -> FsSymSucceeded(FsSymHandle({ id: 0 }, { id: 1 }))
+      #|1: FsSymOpen({ dir: { parts: [] }, name: "b" }) -> FsSymSucceeded(FsSymHandle({ id: 2 }, { id: 3 }))
+      #|2: FsSymWrite(Symbolic({ id: 1 }), "Hi") -> FsSymSucceeded(FsSymUnit)
+      #|3: FsSymWrite(Symbolic({ id: 3 }), "Bye") -> FsSymSucceeded(FsSymUnit)
+      #|4: FsSymClose(Symbolic({ id: 1 })) -> FsSymSucceeded(FsSymUnit)
+      #|5: FsSymRead(FsFileRef(Symbolic({ id: 0 }))) -> FsSymSucceeded(FsSymText("Hi"))
+      #|6: FsSymClose(Symbolic({ id: 3 })) -> FsSymSucceeded(FsSymUnit)
+      #|7: FsSymRead(FsFileRef(Symbolic({ id: 2 }))) -> FsSymSucceeded(FsSymText("Bye"))
+      #|8: FsSymMkDir({ parts: ["z"] }) -> FsSymSucceeded(FsSymUnit)
+      #|9: FsSymOpen({ dir: { parts: ["z"] }, name: "b" }) -> FsSymSucceeded(FsSymHandle({ id: 4 }, { id: 5 }))
+      #|10: FsSymClose(Symbolic({ id: 5 })) -> FsSymSucceeded(FsSymUnit)
+      #|11: FsSymRead(FsFileRef(Symbolic({ id: 4 }))) -> FsSymSucceeded(FsSymText(""))
+      #|
+    ),
+  )
+}
+
+///|
+// Impossible-reference precondition:
+// The generator proposes a write through `Var 0` before any open command has
+// introduced that variable. The property checks that generation exhausts its
+// retries and reports a deadlock at step zero instead of producing a program
+// that would fail later during reification.
+test "qsm precondition rejects handles that were never created" {
+  let result = @quickcheck_statemachine.check(
+    fs_unknown_handle_probe_spec(),
+    config=case_config(max_commands=1, max_tries=3),
+  )
+  guard result
+    is Err(
+      GenerationFailed(failure=Deadlock(step_index~, model~, commands~, ..), ..)
+    ) else {
+    fail("expected unknown handle to exhaust generation attempts")
+  }
+  inspect(step_index, content="0")
+  inspect(
+    @debug.to_string(model),
+    content=(
+      #|{
+      #|  dirs: [{ parts: [] }],
+      #|  files: [],
+      #|  file_refs: [],
+      #|  handles: [],
+      #|  created_handles: [],
+      #|}
+    ),
+  )
+  inspect(@quickcheck_statemachine.format_commands(commands), content="")
+}
+
+///|
+test "qsm filesystem read can use the file reference returned by open" {
+  let root = fs_root_dir()
+  let a = fs_file(root, "a")
+  let commands : Array[FsSymCommand] = [
+    FsSymOpen(a),
+    FsSymWrite(symbolic_handle(1), "Hi"),
+    FsSymClose(symbolic_handle(1)),
+    FsSymRead(FsFileRef(symbolic_file(0))),
+  ]
+  let summary = @quickcheck_statemachine.assert_check(
+    fs_script_spec(commands),
+    config=case_config(max_commands=commands.length(), required_labels=[
+      "SuccessfulRead",
+    ]),
+  )
+  inspect(summary.commands_run, content="4")
+  inspect(
+    @quickcheck_statemachine.format_commands(summary.commands),
+    content=(
+      #|0: FsSymOpen({ dir: { parts: [] }, name: "a" }) -> FsSymSucceeded(FsSymHandle({ id: 0 }, { id: 1 }))
+      #|1: FsSymWrite(Symbolic({ id: 1 }), "Hi") -> FsSymSucceeded(FsSymUnit)
+      #|2: FsSymClose(Symbolic({ id: 1 })) -> FsSymSucceeded(FsSymUnit)
+      #|3: FsSymRead(FsFileRef(Symbolic({ id: 0 }))) -> FsSymSucceeded(FsSymText("Hi"))
+      #|
+    ),
+  )
+}
+
+///|
+test "qsm filesystem shrinker replaces read paths with file references" {
+  let z = fs_dir(["z"])
+  let z_b = fs_file(z, "b")
+  let commands : Array[FsSymCommand] = [
+    FsSymMkDir(z),
+    FsSymOpen(z_b),
+    FsSymClose(symbolic_handle(1)),
+    FsSymRead(FsFileVal(z_b)),
+  ]
+  let summary = @quickcheck_statemachine.assert_check(
+    fs_script_spec(commands),
+    config=case_config(max_commands=commands.length(), required_labels=[
+      "SuccessfulRead",
+    ]),
+  )
+  let candidates = @quickcheck_statemachine.shrink_commands_once(
+    fs_script_spec(commands),
+    summary.commands,
+  )
+  let found = for candidate in candidates {
+    if fs_commands_contain_read_file_ref(candidate, 0) {
+      break true
+    }
+  } nobreak {
+    false
+  }
+  assert_true(found)
+}
+
+///|
+// Closed-handle error coverage:
+// In contrast with the previous test, this handle was created by `open` and is
+// therefore a valid symbolic reference even after `close`. The property checks
+// the intentionally liberal precondition: closed-handle writes remain legal test
+// commands so the model can verify the expected `HandleClosed` response and the
+// label can record that coverage.
+test "qsm precondition still allows closed handle errors" {
+  let root = fs_root_dir()
+  let a = fs_file(root, "a")
+  let commands : Array[FsSymCommand] = [
+    FsSymOpen(a),
+    FsSymClose(symbolic_handle(1)),
+    FsSymWrite(symbolic_handle(1), "late write"),
+  ]
+  let summary = @quickcheck_statemachine.assert_check(
+    fs_script_spec(commands),
+    config=case_config(max_commands=commands.length(), required_labels=[
+      "ClosedHandleWrite",
+    ]),
+  )
+  inspect(summary.commands_run, content="3")
+  inspect(@debug.to_string(summary.labels), content="[\"ClosedHandleWrite\"]")
+  inspect(
+    @quickcheck_statemachine.format_history(summary.history),
+    content=(
+      #|Invocation(
+      #|  pid={ id: 0 },
+      #|  command=FsOpen({ dir: { parts: [] }, name: "a" }),
+      #|)
+      #|Response(
+      #|  pid={ id: 0 },
+      #|  response=FsSucceeded(FsHandle({ dir: { parts: [] }, name: "a" }, 0)),
+      #|)
+      #|Invocation(pid={ id: 1 }, command=FsClose(0))
+      #|Response(pid={ id: 1 }, response=FsSucceeded(FsUnit))
+      #|Invocation(pid={ id: 2 }, command=FsWrite(0, "late write"))
+      #|Response(pid={ id: 2 }, response=FsFailed(FsHandleClosed))
+      #|
+    ),
+  )
+}
+
+///|
+// Busy-read bug regression:
+// The pure model rejects reading a file while it has an open handle, returning
+// `Busy`. The alternate system skips that check and returns the file contents.
+// The property verifies that the postcondition catches this mismatch and that
+// the recorded history contains the full three-command prefix needed to explain
+// the failure.
+test "qsm filesystem catches missing busy read check" {
+  let root = fs_root_dir()
+  let a = fs_file(root, "a")
+  let commands : Array[FsSymCommand] = [
+    FsSymOpen(a),
+    FsSymWrite(symbolic_handle(1), "Hi"),
+    FsSymRead(FsFileRef(symbolic_file(0))),
+  ]
+  let result = @quickcheck_statemachine.check(
+    fs_script_spec(commands, run_command=run_fs_command_without_busy_check),
+    config=case_config(max_commands=commands.length(), shrink=false),
+  )
+  guard result
+    is Err(
+      PostconditionFailed(
+        step_index~,
+        command~,
+        response~,
+        model~,
+        next_model~,
+        history~,
+        logic~,
+        ..
+      )
+    ) else {
+    fail("expected busy read mismatch")
+  }
+  inspect(
+    "\{step_index}: \{@debug.to_string(command)} -> \{@debug.to_string(response)}, postcondition=\{fs_postcondition(model, command, response).eval()}",
+    content=(
+      #|2: FsRead({ dir: { parts: [] }, name: "a" }) -> FsSucceeded(FsText("Hi")), postcondition=false
+    ),
+  )
+  inspect(
+    @debug.to_string(model),
+    content=(
+      #|{
+      #|  dirs: [{ parts: [] }],
+      #|  files: [{ file: { dir: { parts: [] }, name: "a" }, content: "Hi" }],
+      #|  handles: [{ handle: 0, file: { dir: { parts: [] }, name: "a" } }],
+      #|  next_handle: 1,
+      #|}
+    ),
+  )
+  inspect(next_model == model, content="true")
+  inspect(
+    @quickcheck_statemachine.format_history(history),
+    content=(
+      #|Invocation(
+      #|  pid={ id: 0 },
+      #|  command=FsOpen({ dir: { parts: [] }, name: "a" }),
+      #|)
+      #|Response(
+      #|  pid={ id: 0 },
+      #|  response=FsSucceeded(FsHandle({ dir: { parts: [] }, name: "a" }, 0)),
+      #|)
+      #|Invocation(pid={ id: 1 }, command=FsWrite(0, "Hi"))
+      #|Response(pid={ id: 1 }, response=FsSucceeded(FsUnit))
+      #|Invocation(
+      #|  pid={ id: 2 },
+      #|  command=FsRead({ dir: { parts: [] }, name: "a" }),
+      #|)
+      #|Response(pid={ id: 2 }, response=FsSucceeded(FsText("Hi")))
+      #|
+    ),
+  )
+  inspect(
+    @quickcheck_statemachine.format_counterexample(logic.counterexample()),
+    content="filesystem response matches model",
+  )
+}

@@ -1,0 +1,54 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moonbit-community/quickcheck_statemachine/async_parallel"
+
+import {
+  "moonbit-community/quickcheck_statemachine",
+  "moonbitlang/core/debug",
+  "moonbitlang/core/quickcheck/splitmix",
+}
+
+// Values
+pub async fn[MSym : @debug.Debug, MCon : @debug.Debug, CSym : @debug.Debug, CCon : @debug.Debug, RSym : @debug.Debug, RCon : @debug.Debug, V, S] assert_check_parallel_async(AsyncStateMachine[MSym, MCon, CSym, CCon, RSym, RCon, V, S], config? : @quickcheck_statemachine.RunConfig) -> @quickcheck_statemachine.RunReport[CSym, RSym, CCon, RCon]
+
+pub async fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] check_parallel_async(AsyncStateMachine[MSym, MCon, CSym, CCon, RSym, RCon, V, S], config? : @quickcheck_statemachine.RunConfig) -> Result[@quickcheck_statemachine.RunReport[CSym, RSym, CCon, RCon], AsyncRunFailure[MSym, MCon, CSym, CCon, RSym, RCon]]
+
+pub async fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] run_parallel_commands_async(AsyncStateMachine[MSym, MCon, CSym, CCon, RSym, RCon, V, S], @quickcheck_statemachine.ParallelCommands[CSym, RSym], config? : @quickcheck_statemachine.RunConfig) -> Result[@quickcheck_statemachine.RunReport[CSym, RSym, CCon, RCon], AsyncRunFailure[MSym, MCon, CSym, CCon, RSym, RCon]]
+
+// Errors
+
+// Types and methods
+pub(all) enum AsyncRunFailure[MSym, MCon, CSym, CCon, RSym, RCon] {
+  ReplayFailed(parallel_commands~ : @quickcheck_statemachine.ParallelCommands[CSym, RSym]?, failure~ : @quickcheck_statemachine.RunFailure[MSym, MCon, CSym, CCon, RSym, RCon])
+  LinearizationFailed(parallel_commands~ : @quickcheck_statemachine.ParallelCommands[CSym, RSym], commands~ : @quickcheck_statemachine.Commands[CSym, RSym], history~ : @quickcheck_statemachine.History[CCon, RCon], logic~ : @quickcheck_statemachine.Logic, shrinks~ : Int, shrink_rounds~ : Int)
+  LinearizationBudgetExceeded(parallel_commands~ : @quickcheck_statemachine.ParallelCommands[CSym, RSym], commands~ : @quickcheck_statemachine.Commands[CSym, RSym], history~ : @quickcheck_statemachine.History[CCon, RCon], operation_count~ : Int, max_operations~ : Int, shrinks~ : Int, shrink_rounds~ : Int)
+  BranchEnvironmentMergeFailed(parallel_commands~ : @quickcheck_statemachine.ParallelCommands[CSym, RSym], commands~ : @quickcheck_statemachine.Commands[CSym, RSym], history~ : @quickcheck_statemachine.History[CCon, RCon], error~ : @quickcheck_statemachine.EnvError, logic~ : @quickcheck_statemachine.Logic, shrinks~ : Int, shrink_rounds~ : Int)
+} derive(Eq, @debug.Debug)
+
+pub struct AsyncStateMachine[MSym, MCon, CSym, CCon, RSym, RCon, V, S] {
+  init_symbolic_model : () -> MSym
+  init_concrete_model : () -> MCon
+  init_system : async () -> S
+  generator : (MSym, Int, @splitmix.RandomState) -> CSym?
+  mock : (MSym, CSym, @quickcheck_statemachine.GenSym) -> (RSym, @quickcheck_statemachine.GenSym)
+  response_vars : (RSym) -> Array[@quickcheck_statemachine.Var]
+  transition_symbolic : (MSym, CSym, RSym) -> MSym
+  transition_concrete : (MCon, CCon, RCon) -> MCon
+  precondition : (MSym, CSym) -> @quickcheck_statemachine.Logic
+  postcondition : (MCon, CCon, RCon) -> @quickcheck_statemachine.Logic
+  invariant : (MCon) -> @quickcheck_statemachine.Logic
+  shrinker : (MSym, CSym) -> Array[CSym]
+  remap_command : (CSym, Map[@quickcheck_statemachine.Var, @quickcheck_statemachine.Var]) -> CSym?
+  reify_command : (CSym, @quickcheck_statemachine.Environment[V]) -> Result[CCon, @quickcheck_statemachine.EnvError]
+  run_command : async (CCon, S) -> RCon
+  bind_response : (RSym, RCon, @quickcheck_statemachine.Environment[V]) -> Result[@quickcheck_statemachine.Environment[V], @quickcheck_statemachine.BindError]
+  cleanup : async (MCon, S) -> Unit
+  command_name : (CSym) -> String
+  label : (MCon, CCon, RCon) -> Array[String]
+}
+pub fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] AsyncStateMachine::from_sync(@quickcheck_statemachine.StateMachine[MSym, MCon, CSym, CCon, RSym, RCon, V, S]) -> Self[MSym, MCon, CSym, CCon, RSym, RCon, V, S]
+pub fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] AsyncStateMachine::new(init_symbolic_model~ : () -> MSym, init_concrete_model~ : () -> MCon, init_system~ : async () -> S, generator~ : (MSym, Int, @splitmix.RandomState) -> CSym?, mock~ : (MSym, CSym, @quickcheck_statemachine.GenSym) -> (RSym, @quickcheck_statemachine.GenSym), transition_symbolic~ : (MSym, CSym, RSym) -> MSym, transition_concrete~ : (MCon, CCon, RCon) -> MCon, reify_command~ : (CSym, @quickcheck_statemachine.Environment[V]) -> Result[CCon, @quickcheck_statemachine.EnvError], run_command~ : async (CCon, S) -> RCon, bind_response~ : (RSym, RCon, @quickcheck_statemachine.Environment[V]) -> Result[@quickcheck_statemachine.Environment[V], @quickcheck_statemachine.BindError], postcondition? : (MCon, CCon, RCon) -> @quickcheck_statemachine.Logic, precondition? : (MSym, CSym) -> @quickcheck_statemachine.Logic, invariant? : (MCon) -> @quickcheck_statemachine.Logic, response_vars? : (RSym) -> Array[@quickcheck_statemachine.Var], shrinker? : (MSym, CSym) -> Array[CSym], remap_command? : (CSym, Map[@quickcheck_statemachine.Var, @quickcheck_statemachine.Var]) -> CSym?, cleanup? : async (MCon, S) -> Unit, command_name? : (CSym) -> String, label? : (MCon, CCon, RCon) -> Array[String]) -> Self[MSym, MCon, CSym, CCon, RSym, RCon, V, S]
+
+// Type aliases
+
+// Traits
+
