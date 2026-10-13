@@ -5,8 +5,17 @@
 /// different ids to operations that overlap in time and then search for a valid
 /// linearization of those operations.
 pub(all) struct Pid {
-  id : Int
+  id : Int32
 } derive(Eq, Hash, Debug)
+
+///|
+pub extend Pid with Eq::{not_equal, equal}
+
+///|
+pub extend Pid with Hash::{hash, hash_combine}
+
+///|
+pub extend Pid with Debug::{to_repr}
 
 ///|
 /// One event in an execution trace.
@@ -21,6 +30,12 @@ pub(all) enum HistoryEvent[C, R] {
 } derive(Eq, Debug)
 
 ///|
+pub extend HistoryEvent with Eq::{not_equal, equal}
+
+///|
+pub extend HistoryEvent with Debug::{to_repr}
+
+///|
 /// Ordered trace of command invocations, responses, and exceptions.
 ///
 /// The history is kept in the same representation used by state-machine
@@ -32,9 +47,15 @@ pub(all) struct History[C, R] {
 } derive(Eq, Debug)
 
 ///|
+pub extend History with Eq::{not_equal, equal}
+
+///|
+pub extend History with Debug::{to_repr}
+
+///|
 /// Creates an empty execution trace.
 pub fn[C, R] History::empty() -> History[C, R] {
-  { events: [] }
+  { events: [], }
 }
 
 ///|
@@ -60,6 +81,12 @@ pub(all) struct Operation[C, R] {
 } derive(Eq, Debug)
 
 ///|
+pub extend Operation with Eq::{not_equal, equal}
+
+///|
+pub extend Operation with Debug::{to_repr}
+
+///|
 /// Groups a raw history into operations by matching events with the same pid.
 ///
 /// Responses are matched with the most recent unfinished invocation for the pid.
@@ -69,7 +96,7 @@ pub fn[C, R] make_operations(history : History[C, R]) -> Array[Operation[C, R]] 
   for event in history.events {
     match event {
       Invocation(pid~, command~) =>
-        operations.push({ pid, command, response: None, exception: None })
+        operations.push({ pid, command, response: None, exception: None, })
       Response(pid~, response~) =>
         for index = operations.length() - 1; index >= 0; {
           if operations[index].pid == pid && operations[index].response is None {

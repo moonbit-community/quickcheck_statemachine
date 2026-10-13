@@ -23,6 +23,9 @@ pub(all) enum AsyncRunFailure[MSym, MCon, CSym, CCon, RSym, RCon] {
   LinearizationBudgetExceeded(parallel_commands~ : @quickcheck_statemachine.ParallelCommands[CSym, RSym], commands~ : @quickcheck_statemachine.Commands[CSym, RSym], history~ : @quickcheck_statemachine.History[CCon, RCon], operation_count~ : Int, max_operations~ : Int, shrinks~ : Int, shrink_rounds~ : Int)
   BranchEnvironmentMergeFailed(parallel_commands~ : @quickcheck_statemachine.ParallelCommands[CSym, RSym], commands~ : @quickcheck_statemachine.Commands[CSym, RSym], history~ : @quickcheck_statemachine.History[CCon, RCon], error~ : @quickcheck_statemachine.EnvError, logic~ : @quickcheck_statemachine.Logic, shrinks~ : Int, shrink_rounds~ : Int)
 } derive(Eq, @debug.Debug)
+pub fn[MSym : Eq, MCon : Eq, CSym : Eq, CCon : Eq, RSym : Eq, RCon : Eq] AsyncRunFailure::equal(Self[MSym, MCon, CSym, CCon, RSym, RCon], Self[MSym, MCon, CSym, CCon, RSym, RCon]) -> Bool
+pub fn[MSym : Eq, MCon : Eq, CSym : Eq, CCon : Eq, RSym : Eq, RCon : Eq] AsyncRunFailure::not_equal(Self[MSym, MCon, CSym, CCon, RSym, RCon], Self[MSym, MCon, CSym, CCon, RSym, RCon]) -> Bool
+pub fn[MSym : @debug.Debug, MCon : @debug.Debug, CSym : @debug.Debug, CCon : @debug.Debug, RSym : @debug.Debug, RCon : @debug.Debug] AsyncRunFailure::to_repr(Self[MSym, MCon, CSym, CCon, RSym, RCon]) -> @debug.Repr
 
 pub struct AsyncStateMachine[MSym, MCon, CSym, CCon, RSym, RCon, V, S] {
   init_symbolic_model : () -> MSym

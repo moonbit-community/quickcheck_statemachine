@@ -38,16 +38,16 @@ enum DemoCommand {
 ///|
 enum DemoResponse {
   DemoUnit
-  DemoValue(Int)
+  DemoValue(Int32)
 } derive(Eq, Debug)
 
 ///|
 struct DemoSystem {
-  mut value : Int
+  mut value : Int32
 }
 
 ///|
-fn demo_expected(model : Int, command : DemoCommand) -> DemoResponse {
+fn demo_expected(model : Int32, command : DemoCommand) -> DemoResponse {
   match command {
     DemoIncr => DemoUnit
     DemoGet => DemoValue(model)
@@ -56,10 +56,10 @@ fn demo_expected(model : Int, command : DemoCommand) -> DemoResponse {
 
 ///|
 fn demo_transition(
-  model : Int,
+  model : Int32,
   command : DemoCommand,
   response : DemoResponse,
-) -> Int {
+) -> Int32 {
   ignore(response)
   match command {
     DemoIncr => model + 1
@@ -72,13 +72,13 @@ fn demo_command(
   command : DemoCommand,
   response : DemoResponse,
 ) -> @qsm.Command[DemoCommand, DemoResponse] {
-  @qsm.Command::{ command, response, vars: [] }
+  @qsm.Command::{ command, response, vars: [], }
 }
 
 ///|
 fn demo_spec() -> @async_parallel.AsyncStateMachine[
-  Int,
-  Int,
+  Int32,
+  Int32,
   DemoCommand,
   DemoCommand,
   DemoResponse,
@@ -89,7 +89,7 @@ fn demo_spec() -> @async_parallel.AsyncStateMachine[
   @async_parallel.AsyncStateMachine::new(
     init_symbolic_model=() => 0,
     init_concrete_model=() => 0,
-    init_system=() => { value: 0 },
+    init_system=() => { value: 0, },
     generator=(_, _, _) => None,
     mock=(model, command, gen_sym) => (demo_expected(model, command), gen_sym),
     transition_symbolic=demo_transition,
@@ -128,8 +128,8 @@ fn demo_spec() -> @async_parallel.AsyncStateMachine[
 async test "README async parallel smoke test" {
   let commands = @qsm.ParallelCommands::{
     prefix: @qsm.Commands::empty(),
-    left: @qsm.Commands::{ commands: [demo_command(DemoIncr, DemoUnit)] },
-    right: @qsm.Commands::{ commands: [demo_command(DemoGet, DemoValue(0))] },
+    left: @qsm.Commands::{ commands: [demo_command(DemoIncr, DemoUnit)], },
+    right: @qsm.Commands::{ commands: [demo_command(DemoGet, DemoValue(0))], },
   }
   match
     @async_parallel.run_parallel_commands_async(demo_spec(), commands, config={

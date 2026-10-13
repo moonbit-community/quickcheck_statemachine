@@ -9,14 +9,14 @@
 // command, the observed response must match the response predicted by the pure
 // model.
 fn case_config(
-  max_commands~ : Int,
-  cases? : Int = 1,
-  max_tries? : Int = 10,
-  shrink? : Bool = true,
-  max_shrinks? : Int = 100,
-  max_shrink_rounds? : Int = 20,
-  required_labels? : Array[String] = [],
-  required_command_names? : Array[String] = [],
+  max_commands~ : Int32,
+  cases~ : Int32 = 1,
+  max_tries~ : Int32 = 10,
+  shrink~ : Bool = true,
+  max_shrinks~ : Int32 = 100,
+  max_shrink_rounds~ : Int32 = 20,
+  required_labels~ : Array[String] = [],
+  required_command_names~ : Array[String] = [],
 ) -> @quickcheck_statemachine.RunConfig {
   {
     seed: 20240702,
@@ -41,12 +41,12 @@ enum CounterCommand {
 ///|
 enum CounterResponse {
   CounterIncrDone
-  CounterGot(Int)
+  CounterGot(Int32)
 } derive(Eq, Debug)
 
 ///|
 struct CounterSystem {
-  mut value : Int
+  mut value : Int32
 } derive(Eq, Debug)
 
 ///|
@@ -80,7 +80,7 @@ fn run_counter_with_42_bug(
 }
 
 ///|
-fn counter_transition(model : Int, command : CounterCommand) -> Int {
+fn counter_transition(model : Int32, command : CounterCommand) -> Int32 {
   match command {
     CounterIncr => model + 1
     CounterGet => model
@@ -88,7 +88,7 @@ fn counter_transition(model : Int, command : CounterCommand) -> Int {
 }
 
 ///|
-fn counter_expected(model : Int, command : CounterCommand) -> CounterResponse {
+fn counter_expected(model : Int32, command : CounterCommand) -> CounterResponse {
   match command {
     CounterIncr => CounterIncrDone
     CounterGet => CounterGot(model)
@@ -105,8 +105,8 @@ fn counter_name(command : CounterCommand) -> String {
 
 ///|
 fn counter_generator(
-  model : Int,
-  size : Int,
+  model : Int32,
+  size : Int32,
   rng : @splitmix.RandomState,
 ) -> CounterCommand? {
   ignore(model)
@@ -120,11 +120,11 @@ fn counter_generator(
 
 ///|
 fn counter_base_spec(
-  generator : (Int, Int, @splitmix.RandomState) -> CounterCommand?,
-  run_command? : (CounterCommand, CounterSystem) -> CounterResponse = run_counter_command,
+  generator : (Int32, Int32, @splitmix.RandomState) -> CounterCommand?,
+  run_command~ : (CounterCommand, CounterSystem) -> CounterResponse = run_counter_command,
 ) -> @quickcheck_statemachine.StateMachine[
-  Int,
-  Int,
+  Int32,
+  Int32,
   CounterCommand,
   CounterCommand,
   CounterResponse,
@@ -135,7 +135,7 @@ fn counter_base_spec(
   @quickcheck_statemachine.StateMachine::new(
     init_symbolic_model=() => 0,
     init_concrete_model=() => 0,
-    init_system=() => { value: 0 },
+    init_system=() => { value: 0, },
     generator~,
     mock=(model, command, gen_sym) => {
       (counter_expected(model, command), gen_sym)
@@ -171,10 +171,10 @@ fn counter_base_spec(
 ///|
 fn counter_script_spec(
   commands : Array[CounterCommand],
-  run_command? : (CounterCommand, CounterSystem) -> CounterResponse = run_counter_command,
+  run_command~ : (CounterCommand, CounterSystem) -> CounterResponse = run_counter_command,
 ) -> @quickcheck_statemachine.StateMachine[
-  Int,
-  Int,
+  Int32,
+  Int32,
   CounterCommand,
   CounterCommand,
   CounterResponse,
@@ -182,7 +182,7 @@ fn counter_script_spec(
   Unit,
   CounterSystem,
 ] {
-  let cursor : Array[Int] = [0]
+  let cursor : Array[Int32] = [0]
   counter_base_spec(
     (model, size, rng) => {
       ignore(model)
@@ -202,10 +202,10 @@ fn counter_script_spec(
 
 ///|
 fn counter_random_spec(
-  run_command? : (CounterCommand, CounterSystem) -> CounterResponse = run_counter_command,
+  run_command~ : (CounterCommand, CounterSystem) -> CounterResponse = run_counter_command,
 ) -> @quickcheck_statemachine.StateMachine[
-  Int,
-  Int,
+  Int32,
+  Int32,
   CounterCommand,
   CounterCommand,
   CounterResponse,
@@ -217,7 +217,7 @@ fn counter_random_spec(
 }
 
 ///|
-fn counter_increments_then_get(count : Int) -> Array[CounterCommand] {
+fn counter_increments_then_get(count : Int32) -> Array[CounterCommand] {
   let commands : Array[CounterCommand] = []
   for _ in 0..<count {
     commands.push(CounterIncr)

@@ -7,18 +7,18 @@ enum CounterCommand {
 ///|
 enum CounterResponse {
   CounterUnit
-  CounterValue(Int)
+  CounterValue(Int32)
 } derive(Eq, Debug)
 
 ///|
 struct CounterSystem {
-  mut value : Int
-  mut reads : Int
-  mut completed : Int
+  mut value : Int32
+  mut reads : Int32
+  mut completed : Int32
 }
 
 ///|
-fn counter_expected(model : Int, command : CounterCommand) -> CounterResponse {
+fn counter_expected(model : Int32, command : CounterCommand) -> CounterResponse {
   match command {
     CounterIncr => CounterUnit
     CounterGet => CounterValue(model)
@@ -27,10 +27,10 @@ fn counter_expected(model : Int, command : CounterCommand) -> CounterResponse {
 
 ///|
 fn counter_transition(
-  model : Int,
+  model : Int32,
   command : CounterCommand,
   response : CounterResponse,
-) -> Int {
+) -> Int32 {
   ignore(response)
   match command {
     CounterIncr => model + 1
@@ -42,7 +42,7 @@ fn counter_transition(
 fn counter_command(
   command : CounterCommand,
 ) -> @qsm.Command[CounterCommand, CounterResponse] {
-  @qsm.Command::{ command, response: CounterUnit, vars: [] }
+  @qsm.Command::{ command, response: CounterUnit, vars: [], }
 }
 
 ///|
@@ -53,7 +53,7 @@ fn counter_commands(
   for command in commands {
     items.push(counter_command(command))
   }
-  @qsm.Commands::{ commands: items }
+  @qsm.Commands::{ commands: items, }
 }
 
 ///|
@@ -90,8 +90,8 @@ fn counter_spec(
   racy : Bool,
   initialized : Array[Bool],
 ) -> @async_parallel.AsyncStateMachine[
-  Int,
-  Int,
+  Int32,
+  Int32,
   CounterCommand,
   CounterCommand,
   CounterResponse,
@@ -104,7 +104,7 @@ fn counter_spec(
     init_concrete_model=() => 0,
     init_system=() => {
       initialized.push(true)
-      { value: 0, reads: 0, completed: 0 }
+      { value: 0, reads: 0, completed: 0, }
     },
     generator=(_, _, _) => None,
     mock=(model, command, gen_sym) => {
@@ -152,8 +152,8 @@ fn counter_spec(
 fn sync_counter_spec(
   initialized : Array[Bool],
 ) -> @qsm.StateMachine[
-  Int,
-  Int,
+  Int32,
+  Int32,
   CounterCommand,
   CounterCommand,
   CounterResponse,
@@ -166,7 +166,7 @@ fn sync_counter_spec(
     init_concrete_model=() => 0,
     init_system=() => {
       initialized.push(true)
-      { value: 0, reads: 0, completed: 0 }
+      { value: 0, reads: 0, completed: 0, }
     },
     generator=(_, _, _) => None,
     mock=(model, command, gen_sym) => {
@@ -197,7 +197,7 @@ fn sync_counter_spec(
 ///|
 fn overlapping_invocations(
   history : @qsm.History[CounterCommand, CounterResponse],
-) -> Int {
+) -> Int32 {
   for index = 0; index < history.events.length(); index = index + 1 {
     match history.events[index] {
       @qsm.Invocation(..) => ()
@@ -333,11 +333,11 @@ fn dup_spec() -> @async_parallel.AsyncStateMachine[
     init_concrete_model=() => (),
     init_system=() => (),
     generator=(_, _, _) => None,
-    mock=(_, _, gen_sym) => (DupMade(@qsm.Var::{ id: 0 }), gen_sym),
+    mock=(_, _, gen_sym) => (DupMade(@qsm.Var::{ id: 0, }), gen_sym),
     transition_symbolic=(_, _, _) => (),
     transition_concrete=(_, _, _) => (),
     reify_command=(command, _) => Ok(command),
-    run_command=(_, _) => DupMade(@qsm.Var::{ id: 0 }),
+    run_command=(_, _) => DupMade(@qsm.Var::{ id: 0, }),
     bind_response=(symbolic, _, environment) => {
       match symbolic {
         DupMade(variable) => Ok(environment.insert(variable, ()))
@@ -348,7 +348,7 @@ fn dup_spec() -> @async_parallel.AsyncStateMachine[
 
 ///|
 async test "duplicate branch environments are reported separately" {
-  let variable = @qsm.Var::{ id: 0 }
+  let variable = @qsm.Var::{ id: 0, }
   let commands = @qsm.ParallelCommands::{
     prefix: @qsm.Commands::empty(),
     left: dup_commands(variable),

@@ -6,158 +6,158 @@
 // with the logical sequence: to_array, iterators, front/back, indexed access,
 // views, length, emptiness, and capacity invariants.
 enum DequeCommand {
-  DequeConstruct(Array[Int], Int)
-  DequeFromIter(Array[Int])
-  DequeFromJson(Array[Int])
-  DequeReset(Array[Int], Int)
-  DequeResetFromJson(Array[Int])
-  DequeResetWrapped(Array[Int])
-  DequePushBack(Int)
-  DequePushFront(Int)
+  DequeConstruct(Array[Int32], Int32)
+  DequeFromIter(Array[Int32])
+  DequeFromJson(Array[Int32])
+  DequeReset(Array[Int32], Int32)
+  DequeResetFromJson(Array[Int32])
+  DequeResetWrapped(Array[Int32])
+  DequePushBack(Int32)
+  DequePushFront(Int32)
   DequePopBack
   DequePopFront
   DequeUnsafePopBack
   DequeUnsafePopFront
   DequeFront
   DequeBack
-  DequeGet(Int)
-  DequeAt(Int)
-  DequeSet(Int, Int)
-  DequeInsert(Int, Int)
-  DequeRemove(Int)
+  DequeGet(Int32)
+  DequeAt(Int32)
+  DequeSet(Int32, Int32)
+  DequeInsert(Int32, Int32)
+  DequeRemove(Int32)
   DequeClear
-  DequeTruncate(Int)
-  DequeDrain(Int, Int)
-  DequeDrainToEnd(Int)
-  DequeRetainAtLeast(Int)
-  DequeRetainMapEven(Int)
+  DequeTruncate(Int32)
+  DequeDrain(Int32, Int32)
+  DequeDrainToEnd(Int32)
+  DequeRetainAtLeast(Int32)
+  DequeRetainMapEven(Int32)
   DequeRetainEvenIndex
   DequeRetainMapAddCallIndex
-  DequeExtractBelow(Int)
-  DequeFilterAtLeast(Int)
+  DequeExtractBelow(Int32)
+  DequeFilterAtLeast(Int32)
   DequeFilterEvenIndex
-  DequeMapAdd(Int)
+  DequeMapAdd(Int32)
   DequeMapAddCallIndex
   DequeMapiAddIndex
   DequeChunkByNondecreasing
   DequeChunkByEvenBoundary
-  DequeFlatten(Array[Array[Int]])
-  DequeFlattenWrapped(Array[Array[Int]])
-  DequeFlattenSlack(Array[Array[Int]])
-  DequeFlattenWrappedSlack(Array[Array[Int]])
+  DequeFlatten(Array[Array[Int32]])
+  DequeFlattenWrapped(Array[Array[Int32]])
+  DequeFlattenSlack(Array[Array[Int32]])
+  DequeFlattenWrappedSlack(Array[Array[Int32]])
   DequeReverseInPlace
-  DequeReserveCapacity(Int)
+  DequeReserveCapacity(Int32)
   DequeShrinkToFit
-  DequeAppend(Array[Int])
+  DequeAppend(Array[Int32])
   DequeAppendSelf
-  DequeAppendWrapped(Array[Int])
-  DequeAdd(Array[Int])
+  DequeAppendWrapped(Array[Int32])
+  DequeAdd(Array[Int32])
   DequeAddSelf
-  DequeAddWrapped(Array[Int])
+  DequeAddWrapped(Array[Int32])
   DequeCopy
   DequeRev
   DequeToJson
-  DequeContains(Int)
-  DequeSearch(Int)
-  DequeBinarySearch(Int)
-  DequeBinarySearchBy(Int)
-  DequeEqual(Array[Int])
-  DequeNotEqual(Array[Int])
-  DequeCompare(Array[Int])
-  DequeLessThan(Array[Int])
-  DequeLessEqual(Array[Int])
-  DequeGreaterThan(Array[Int])
-  DequeGreaterEqual(Array[Int])
+  DequeContains(Int32)
+  DequeSearch(Int32)
+  DequeBinarySearch(Int32)
+  DequeBinarySearchBy(Int32)
+  DequeEqual(Array[Int32])
+  DequeNotEqual(Array[Int32])
+  DequeCompare(Array[Int32])
+  DequeLessThan(Array[Int32])
+  DequeLessEqual(Array[Int32])
+  DequeGreaterThan(Array[Int32])
+  DequeGreaterEqual(Array[Int32])
   DequeShuffleZero
   DequeShuffleInPlaceZero
   DequeShuffleLinear
   DequeShuffleInPlaceLinear
-  DequeBlitTo(Array[Int], Int, Int, Int)
-  DequeBlitToWrappedDst(Array[Int], Int, Int, Int)
-  DequeBlitSelf(Int, Int, Int)
-  DequeChunks(Int)
+  DequeBlitTo(Array[Int32], Int32, Int32, Int32)
+  DequeBlitToWrappedDst(Array[Int32], Int32, Int32, Int32)
+  DequeBlitSelf(Int32, Int32, Int32)
+  DequeChunks(Int32)
 } derive(Eq, Debug)
 
 ///|
 enum DequeResult {
   DequeDone
-  DequeOptional(Int?)
-  DequeItem(Int)
-  DequeInt(Int)
-  DequeItems(Array[Int])
-  DequeNestedItems(Array[Array[Int]])
+  DequeOptional(Int32?)
+  DequeItem(Int32)
+  DequeInt(Int32)
+  DequeItems(Array[Int32])
+  DequeNestedItems(Array[Array[Int32]])
   DequeBool(Bool)
-  DequeSearchResult(Result[Int, Int])
+  DequeSearchResult(Result[Int32, Int32])
 } derive(Eq, Debug)
 
 ///|
 struct DequeModel {
-  values : Array[Int]
-  capacity : Int
+  values : Array[Int32]
+  capacity : Int32
 } derive(Eq, Debug)
 
 ///|
 struct DequeObservation {
-  contents : Array[Int]
-  length : Int
+  contents : Array[Int32]
+  length : Int32
   is_empty : Bool
-  front : Int?
-  back : Int?
-  iter_contents : Array[Int]
-  rev_iter_contents : Array[Int]
-  each_contents : Array[Int]
-  rev_each_contents : Array[Int]
-  eachi_contents : Array[(Int, Int)]
-  iter2_contents : Array[(Int, Int)]
-  rev_eachi_contents : Array[(Int, Int)]
-  rev_iter2_contents : Array[(Int, Int)]
-  get_contents : Array[Int?]
-  at_contents : Array[Int]
-  view_contents : Array[Int]
-  capacity : Int
+  front : Int32?
+  back : Int32?
+  iter_contents : Array[Int32]
+  rev_iter_contents : Array[Int32]
+  each_contents : Array[Int32]
+  rev_each_contents : Array[Int32]
+  eachi_contents : Array[(Int32, Int32)]
+  iter2_contents : Array[(Int32, Int32)]
+  rev_eachi_contents : Array[(Int32, Int32)]
+  rev_iter2_contents : Array[(Int32, Int32)]
+  get_contents : Array[Int32?]
+  at_contents : Array[Int32]
+  view_contents : Array[Int32]
+  capacity : Int32
 } derive(Eq, Debug)
 
 ///|
 struct DequeExpectedObservation {
-  values : Array[Int]
-  capacity_min : Int
-  exact_capacity : Int?
+  values : Array[Int32]
+  capacity_min : Int32
+  exact_capacity : Int32?
 } derive(Eq, Debug)
 
 ///|
 struct DequeResponse {
   result : DequeResult
-  contents : Array[Int]
-  length : Int
+  contents : Array[Int32]
+  length : Int32
   is_empty : Bool
-  front : Int?
-  back : Int?
-  iter_contents : Array[Int]
-  rev_iter_contents : Array[Int]
-  each_contents : Array[Int]
-  rev_each_contents : Array[Int]
-  eachi_contents : Array[(Int, Int)]
-  iter2_contents : Array[(Int, Int)]
-  rev_eachi_contents : Array[(Int, Int)]
-  rev_iter2_contents : Array[(Int, Int)]
-  get_contents : Array[Int?]
-  at_contents : Array[Int]
-  view_contents : Array[Int]
-  capacity : Int
+  front : Int32?
+  back : Int32?
+  iter_contents : Array[Int32]
+  rev_iter_contents : Array[Int32]
+  each_contents : Array[Int32]
+  rev_each_contents : Array[Int32]
+  eachi_contents : Array[(Int32, Int32)]
+  iter2_contents : Array[(Int32, Int32)]
+  rev_eachi_contents : Array[(Int32, Int32)]
+  rev_iter2_contents : Array[(Int32, Int32)]
+  get_contents : Array[Int32?]
+  at_contents : Array[Int32]
+  view_contents : Array[Int32]
+  capacity : Int32
   derived : Array[DequeObservation]
 } derive(Eq, Debug)
 
 ///|
 struct DequeSystem {
-  mut deque : @deque.Deque[Int]
+  mut deque : @deque.Deque[Int32]
 } derive(Eq, Debug)
 
 ///|
 fn deque_model(
-  values : Array[Int],
-  capacity? : Int = values.length(),
+  values : Array[Int32],
+  capacity~ : Int32 = values.length(),
 ) -> DequeModel {
-  { values, capacity }
+  { values, capacity, }
 }
 
 ///|
@@ -167,11 +167,11 @@ fn deque_empty_model() -> DequeModel {
 
 ///|
 fn deque_empty_system() -> DequeSystem {
-  { deque: @deque.from_array([]) }
+  { deque: @deque.from_array([]), }
 }
 
 ///|
-fn deque_wrapped_from_array(values : Array[Int]) -> @deque.Deque[Int] {
+fn deque_wrapped_from_array(values : Array[Int32]) -> @deque.Deque[Int32] {
   let deque = @deque.Deque([], capacity=deque_max(values.length(), 1))
   deque.push_back(0)
   ignore(deque.pop_front())
@@ -183,9 +183,9 @@ fn deque_wrapped_from_array(values : Array[Int]) -> @deque.Deque[Int] {
 
 ///|
 fn deque_slack_from_array(
-  values : Array[Int],
+  values : Array[Int32],
   wrapped~ : Bool,
-) -> @deque.Deque[Int] {
+) -> @deque.Deque[Int32] {
   let deque = @deque.Deque([], capacity=values.length() + 5)
   if wrapped {
     deque.push_back(0)
@@ -199,8 +199,8 @@ fn deque_slack_from_array(
 
 ///|
 fn deque_outer_wrapped_from_deques(
-  deques : Array[@deque.Deque[Int]],
-) -> @deque.Deque[@deque.Deque[Int]] {
+  deques : Array[@deque.Deque[Int32]],
+) -> @deque.Deque[@deque.Deque[Int32]] {
   let outer = @deque.Deque([], capacity=deques.length() + 5)
   outer.push_back(@deque.from_array([]))
   ignore(outer.pop_front())
@@ -212,10 +212,10 @@ fn deque_outer_wrapped_from_deques(
 
 ///|
 fn deque_positioned_from_array(
-  values : Array[Int],
-  capacity : Int,
-  head_shift : Int,
-) -> @deque.Deque[Int] {
+  values : Array[Int32],
+  capacity : Int32,
+  head_shift : Int32,
+) -> @deque.Deque[Int32] {
   let deque = @deque.Deque([], capacity~)
   if capacity > 0 {
     for _ in 0..<head_shift {
@@ -232,8 +232,8 @@ fn deque_positioned_from_array(
 ///|
 fn deque_string_positioned_from_array(
   values : Array[String],
-  capacity : Int,
-  head_shift : Int,
+  capacity : Int32,
+  head_shift : Int32,
 ) -> @deque.Deque[String] {
   let deque = @deque.Deque([], capacity~)
   if capacity > 0 {
@@ -249,7 +249,7 @@ fn deque_string_positioned_from_array(
 }
 
 ///|
-fn deque_front_model(model : Array[Int]) -> Int? {
+fn deque_front_model(model : Array[Int32]) -> Int32? {
   if model.length() == 0 {
     None
   } else {
@@ -258,7 +258,7 @@ fn deque_front_model(model : Array[Int]) -> Int? {
 }
 
 ///|
-fn deque_back_model(model : Array[Int]) -> Int? {
+fn deque_back_model(model : Array[Int32]) -> Int32? {
   let len = model.length()
   if len == 0 {
     None
@@ -268,7 +268,7 @@ fn deque_back_model(model : Array[Int]) -> Int? {
 }
 
 ///|
-fn deque_get_model(model : Array[Int], index : Int) -> Int? {
+fn deque_get_model(model : Array[Int32], index : Int32) -> Int32? {
   if 0 <= index && index < model.length() {
     Some(model[index])
   } else {
@@ -277,8 +277,8 @@ fn deque_get_model(model : Array[Int], index : Int) -> Int? {
 }
 
 ///|
-fn deque_reverse_array(model : Array[Int]) -> Array[Int] {
-  let reversed : Array[Int] = []
+fn deque_reverse_array(model : Array[Int32]) -> Array[Int32] {
+  let reversed : Array[Int32] = []
   for index = model.length(); index > 0; {
     reversed.push(model[index - 1])
     continue index - 1
@@ -287,8 +287,8 @@ fn deque_reverse_array(model : Array[Int]) -> Array[Int] {
 }
 
 ///|
-fn deque_indexed_model(model : Array[Int]) -> Array[(Int, Int)] {
-  let indexed : Array[(Int, Int)] = []
+fn deque_indexed_model(model : Array[Int32]) -> Array[(Int32, Int32)] {
+  let indexed : Array[(Int32, Int32)] = []
   for index in 0..<model.length() {
     indexed.push((index, model[index]))
   }
@@ -296,8 +296,8 @@ fn deque_indexed_model(model : Array[Int]) -> Array[(Int, Int)] {
 }
 
 ///|
-fn deque_get_all_from_model(model : Array[Int]) -> Array[Int?] {
-  let values : Array[Int?] = []
+fn deque_get_all_from_model(model : Array[Int32]) -> Array[Int32?] {
+  let values : Array[Int32?] = []
   for index in 0..<model.length() {
     values.push(Some(model[index]))
   }
@@ -314,9 +314,9 @@ fn[A] deque_concat(left : Array[A], right : Array[A]) -> Array[A] {
 }
 
 ///|
-fn deque_views_to_array(deque : @deque.Deque[Int]) -> Array[Int] {
+fn deque_views_to_array(deque : @deque.Deque[Int32]) -> Array[Int32] {
   let (first, second) = deque.as_views()
-  let values : Array[Int] = []
+  let values : Array[Int32] = []
   for index in 0..<first.length() {
     values.push(first[index])
   }
@@ -327,36 +327,38 @@ fn deque_views_to_array(deque : @deque.Deque[Int]) -> Array[Int] {
 }
 
 ///|
-fn deque_each_to_array(deque : @deque.Deque[Int]) -> Array[Int] {
-  let values : Array[Int] = []
+fn deque_each_to_array(deque : @deque.Deque[Int32]) -> Array[Int32] {
+  let values : Array[Int32] = []
   deque.each(value => values.push(value))
   values
 }
 
 ///|
-fn deque_rev_each_to_array(deque : @deque.Deque[Int]) -> Array[Int] {
-  let values : Array[Int] = []
+fn deque_rev_each_to_array(deque : @deque.Deque[Int32]) -> Array[Int32] {
+  let values : Array[Int32] = []
   deque.rev_each(value => values.push(value))
   values
 }
 
 ///|
-fn deque_eachi_to_array(deque : @deque.Deque[Int]) -> Array[(Int, Int)] {
-  let values : Array[(Int, Int)] = []
+fn deque_eachi_to_array(deque : @deque.Deque[Int32]) -> Array[(Int32, Int32)] {
+  let values : Array[(Int32, Int32)] = []
   deque.eachi((index, value) => values.push((index, value)))
   values
 }
 
 ///|
-fn deque_rev_eachi_to_array(deque : @deque.Deque[Int]) -> Array[(Int, Int)] {
-  let values : Array[(Int, Int)] = []
+fn deque_rev_eachi_to_array(
+  deque : @deque.Deque[Int32],
+) -> Array[(Int32, Int32)] {
+  let values : Array[(Int32, Int32)] = []
   deque.rev_eachi((index, value) => values.push((index, value)))
   values
 }
 
 ///|
-fn deque_get_all(deque : @deque.Deque[Int]) -> Array[Int?] {
-  let values : Array[Int?] = []
+fn deque_get_all(deque : @deque.Deque[Int32]) -> Array[Int32?] {
+  let values : Array[Int32?] = []
   for index in 0..<deque.length() {
     values.push(deque.get(index))
   }
@@ -364,8 +366,8 @@ fn deque_get_all(deque : @deque.Deque[Int]) -> Array[Int?] {
 }
 
 ///|
-fn deque_at_all(deque : @deque.Deque[Int]) -> Array[Int] {
-  let values : Array[Int] = []
+fn deque_at_all(deque : @deque.Deque[Int32]) -> Array[Int32] {
+  let values : Array[Int32] = []
   for index in 0..<deque.length() {
     values.push(deque[index])
   }
@@ -373,7 +375,7 @@ fn deque_at_all(deque : @deque.Deque[Int]) -> Array[Int] {
 }
 
 ///|
-fn deque_observation(deque : @deque.Deque[Int]) -> DequeObservation {
+fn deque_observation(deque : @deque.Deque[Int32]) -> DequeObservation {
   {
     contents: deque.to_array(),
     length: deque.length(),
@@ -398,8 +400,8 @@ fn deque_observation(deque : @deque.Deque[Int]) -> DequeObservation {
 ///|
 fn deque_snapshot(
   result : DequeResult,
-  deque : @deque.Deque[Int],
-  derived? : Array[DequeObservation] = [],
+  deque : @deque.Deque[Int32],
+  derived~ : Array[DequeObservation] = [],
 ) -> DequeResponse {
   {
     result,
@@ -428,7 +430,7 @@ fn deque_snapshot(
 fn deque_model_response(
   result : DequeResult,
   model : DequeModel,
-  derived? : Array[DequeObservation] = [],
+  derived~ : Array[DequeObservation] = [],
 ) -> DequeResponse {
   let values = model.values
   {
@@ -456,11 +458,11 @@ fn deque_model_response(
 
 ///|
 fn deque_expected_observation(
-  values : Array[Int],
-  capacity_min? : Int = values.length(),
-  exact_capacity? : Int? = None,
+  values : Array[Int32],
+  capacity_min~ : Int32 = values.length(),
+  exact_capacity~ : Int32? = None,
 ) -> DequeExpectedObservation {
-  { values: values.copy(), capacity_min, exact_capacity }
+  { values: values.copy(), capacity_min, exact_capacity, }
 }
 
 ///|
@@ -517,7 +519,7 @@ fn deque_observations_match(
 }
 
 ///|
-fn deque_array_pop_front(model : Array[Int]) -> (Int?, Array[Int]) {
+fn deque_array_pop_front(model : Array[Int32]) -> (Int32?, Array[Int32]) {
   let next = model.copy()
   if next.length() == 0 {
     (None, next)
@@ -527,19 +529,19 @@ fn deque_array_pop_front(model : Array[Int]) -> (Int?, Array[Int]) {
 }
 
 ///|
-fn deque_array_pop_back(model : Array[Int]) -> (Int?, Array[Int]) {
+fn deque_array_pop_back(model : Array[Int32]) -> (Int32?, Array[Int32]) {
   let next = model.copy()
   (next.pop(), next)
 }
 
 ///|
 fn deque_array_drain(
-  model : Array[Int],
-  start : Int,
-  len : Int,
-) -> (Array[Int], Array[Int]) {
-  let drained : Array[Int] = []
-  let kept : Array[Int] = []
+  model : Array[Int32],
+  start : Int32,
+  len : Int32,
+) -> (Array[Int32], Array[Int32]) {
+  let drained : Array[Int32] = []
+  let kept : Array[Int32] = []
   let end = start + len
   for index in 0..<model.length() {
     if start <= index && index < end {
@@ -553,18 +555,18 @@ fn deque_array_drain(
 
 ///|
 fn deque_array_drain_to_end(
-  model : Array[Int],
-  start : Int,
-) -> (Array[Int], Array[Int]) {
+  model : Array[Int32],
+  start : Int32,
+) -> (Array[Int32], Array[Int32]) {
   deque_array_drain(model, start, model.length() - start)
 }
 
 ///|
 fn deque_array_retain_at_least(
-  model : Array[Int],
-  threshold : Int,
-) -> Array[Int] {
-  let kept : Array[Int] = []
+  model : Array[Int32],
+  threshold : Int32,
+) -> Array[Int32] {
+  let kept : Array[Int32] = []
   for value in model {
     if value >= threshold {
       kept.push(value)
@@ -574,7 +576,7 @@ fn deque_array_retain_at_least(
 }
 
 ///|
-fn deque_retain_map_even_value(value : Int, delta : Int) -> Int? {
+fn deque_retain_map_even_value(value : Int32, delta : Int32) -> Int32? {
   if value % 2 == 0 {
     Some(value + delta)
   } else {
@@ -583,8 +585,11 @@ fn deque_retain_map_even_value(value : Int, delta : Int) -> Int? {
 }
 
 ///|
-fn deque_array_retain_map_even(model : Array[Int], delta : Int) -> Array[Int] {
-  let kept : Array[Int] = []
+fn deque_array_retain_map_even(
+  model : Array[Int32],
+  delta : Int32,
+) -> Array[Int32] {
+  let kept : Array[Int32] = []
   for value in model {
     match deque_retain_map_even_value(value, delta) {
       Some(mapped) => kept.push(mapped)
@@ -595,8 +600,8 @@ fn deque_array_retain_map_even(model : Array[Int], delta : Int) -> Array[Int] {
 }
 
 ///|
-fn deque_array_even_index(model : Array[Int]) -> Array[Int] {
-  let kept : Array[Int] = []
+fn deque_array_even_index(model : Array[Int32]) -> Array[Int32] {
+  let kept : Array[Int32] = []
   for index, value in model {
     if index % 2 == 0 {
       kept.push(value)
@@ -606,8 +611,8 @@ fn deque_array_even_index(model : Array[Int]) -> Array[Int] {
 }
 
 ///|
-fn deque_array_retain_map_add_call_index(model : Array[Int]) -> Array[Int] {
-  let kept : Array[Int] = []
+fn deque_array_retain_map_add_call_index(model : Array[Int32]) -> Array[Int32] {
+  let kept : Array[Int32] = []
   for index, value in model {
     if index % 2 == 0 {
       kept.push(value + index)
@@ -618,11 +623,11 @@ fn deque_array_retain_map_add_call_index(model : Array[Int]) -> Array[Int] {
 
 ///|
 fn deque_array_extract_below(
-  model : Array[Int],
-  threshold : Int,
-) -> (Array[Int], Array[Int]) {
-  let extracted : Array[Int] = []
-  let kept : Array[Int] = []
+  model : Array[Int32],
+  threshold : Int32,
+) -> (Array[Int32], Array[Int32]) {
+  let extracted : Array[Int32] = []
+  let kept : Array[Int32] = []
   for value in model {
     if value < threshold {
       extracted.push(value)
@@ -635,15 +640,15 @@ fn deque_array_extract_below(
 
 ///|
 fn deque_array_filter_at_least(
-  model : Array[Int],
-  threshold : Int,
-) -> Array[Int] {
+  model : Array[Int32],
+  threshold : Int32,
+) -> Array[Int32] {
   deque_array_retain_at_least(model, threshold)
 }
 
 ///|
-fn deque_array_map_add(model : Array[Int], delta : Int) -> Array[Int] {
-  let mapped : Array[Int] = []
+fn deque_array_map_add(model : Array[Int32], delta : Int32) -> Array[Int32] {
+  let mapped : Array[Int32] = []
   for value in model {
     mapped.push(value + delta)
   }
@@ -651,8 +656,8 @@ fn deque_array_map_add(model : Array[Int], delta : Int) -> Array[Int] {
 }
 
 ///|
-fn deque_array_map_add_call_index(model : Array[Int]) -> Array[Int] {
-  let mapped : Array[Int] = []
+fn deque_array_map_add_call_index(model : Array[Int32]) -> Array[Int32] {
+  let mapped : Array[Int32] = []
   for index, value in model {
     mapped.push(value + index)
   }
@@ -660,8 +665,8 @@ fn deque_array_map_add_call_index(model : Array[Int]) -> Array[Int] {
 }
 
 ///|
-fn deque_array_mapi_add_index(model : Array[Int]) -> Array[Int] {
-  let mapped : Array[Int] = []
+fn deque_array_mapi_add_index(model : Array[Int32]) -> Array[Int32] {
+  let mapped : Array[Int32] = []
   for index, value in model {
     mapped.push(value + index)
   }
@@ -669,10 +674,12 @@ fn deque_array_mapi_add_index(model : Array[Int]) -> Array[Int] {
 }
 
 ///|
-fn deque_array_chunk_by_nondecreasing(model : Array[Int]) -> Array[Array[Int]] {
-  let chunks : Array[Array[Int]] = []
+fn deque_array_chunk_by_nondecreasing(
+  model : Array[Int32],
+) -> Array[Array[Int32]] {
+  let chunks : Array[Array[Int32]] = []
   for start = 0; start < model.length(); {
-    let chunk : Array[Int] = []
+    let chunk : Array[Int32] = []
     chunk.push(model[start])
     let next = for index = start + 1; index < model.length() &&
                   model[index - 1] <= model[index]; {
@@ -688,10 +695,12 @@ fn deque_array_chunk_by_nondecreasing(model : Array[Int]) -> Array[Array[Int]] {
 }
 
 ///|
-fn deque_array_chunk_by_even_boundary(model : Array[Int]) -> Array[Array[Int]] {
-  let chunks : Array[Array[Int]] = []
+fn deque_array_chunk_by_even_boundary(
+  model : Array[Int32],
+) -> Array[Array[Int32]] {
+  let chunks : Array[Array[Int32]] = []
   guard model.length() > 0 else { return chunks }
-  let chunk : Array[Int] = []
+  let chunk : Array[Int32] = []
   chunk.push(model[0])
   for index in 1..<model.length() {
     if (index - 1) % 2 == 0 {
@@ -707,8 +716,8 @@ fn deque_array_chunk_by_even_boundary(model : Array[Int]) -> Array[Array[Int]] {
 }
 
 ///|
-fn deque_array_flatten(nested : Array[Array[Int]]) -> Array[Int] {
-  let flattened : Array[Int] = []
+fn deque_array_flatten(nested : Array[Array[Int32]]) -> Array[Int32] {
+  let flattened : Array[Int32] = []
   for values in nested {
     for value in values {
       flattened.push(value)
@@ -718,7 +727,7 @@ fn deque_array_flatten(nested : Array[Array[Int]]) -> Array[Int] {
 }
 
 ///|
-fn deque_array_shuffle_zero(model : Array[Int]) -> Array[Int] {
+fn deque_array_shuffle_zero(model : Array[Int32]) -> Array[Int32] {
   let shuffled = model.copy()
   for index = shuffled.length() - 1; index > 0; {
     let value = shuffled[index]
@@ -730,12 +739,12 @@ fn deque_array_shuffle_zero(model : Array[Int]) -> Array[Int] {
 }
 
 ///|
-fn deque_linear_rand(upper : Int) -> Int {
+fn deque_linear_rand(upper : Int32) -> Int32 {
   (upper * 123 + 456) % upper
 }
 
 ///|
-fn deque_array_shuffle_linear(model : Array[Int]) -> Array[Int] {
+fn deque_array_shuffle_linear(model : Array[Int32]) -> Array[Int32] {
   let shuffled = model.copy()
   for index = shuffled.length() - 1; index > 0; {
     let swap_index = deque_linear_rand(index + 1)
@@ -748,7 +757,7 @@ fn deque_array_shuffle_linear(model : Array[Int]) -> Array[Int] {
 }
 
 ///|
-fn deque_min(a : Int, b : Int) -> Int {
+fn deque_min(a : Int32, b : Int32) -> Int32 {
   if a <= b {
     a
   } else {
@@ -757,7 +766,7 @@ fn deque_min(a : Int, b : Int) -> Int {
 }
 
 ///|
-fn deque_max(a : Int, b : Int) -> Int {
+fn deque_max(a : Int32, b : Int32) -> Int32 {
   if a >= b {
     a
   } else {
@@ -766,10 +775,13 @@ fn deque_max(a : Int, b : Int) -> Int {
 }
 
 ///|
-fn deque_array_chunks(model : Array[Int], size : Int) -> Array[Array[Int]] {
-  let chunks : Array[Array[Int]] = []
+fn deque_array_chunks(
+  model : Array[Int32],
+  size : Int32,
+) -> Array[Array[Int32]] {
+  let chunks : Array[Array[Int32]] = []
   for start = 0; start < model.length(); {
-    let chunk : Array[Int] = []
+    let chunk : Array[Int32] = []
     let end = deque_min(start + size, model.length())
     for index in start..<end {
       chunk.push(model[index])
@@ -782,12 +794,12 @@ fn deque_array_chunks(model : Array[Int], size : Int) -> Array[Array[Int]] {
 
 ///|
 fn deque_array_blit_to(
-  source : Array[Int],
-  dst : Array[Int],
-  src_offset : Int,
-  dst_offset : Int,
-  len : Int,
-) -> Array[Int] {
+  source : Array[Int32],
+  dst : Array[Int32],
+  src_offset : Int32,
+  dst_offset : Int32,
+  len : Int32,
+) -> Array[Int32] {
   let result = dst.copy()
   let required_len = dst_offset + len
   while result.length() < required_len {
@@ -800,7 +812,7 @@ fn deque_array_blit_to(
 }
 
 ///|
-fn deque_array_contains(model : Array[Int], value : Int) -> Bool {
+fn deque_array_contains(model : Array[Int32], value : Int32) -> Bool {
   for item in model {
     if item == value {
       return true
@@ -810,7 +822,7 @@ fn deque_array_contains(model : Array[Int], value : Int) -> Bool {
 }
 
 ///|
-fn deque_array_search(model : Array[Int], value : Int) -> Int? {
+fn deque_array_search(model : Array[Int32], value : Int32) -> Int32? {
   for index, item in model {
     if item == value {
       return Some(index)
@@ -820,7 +832,7 @@ fn deque_array_search(model : Array[Int], value : Int) -> Int? {
 }
 
 ///|
-fn deque_array_is_sorted(model : Array[Int]) -> Bool {
+fn deque_array_is_sorted(model : Array[Int32]) -> Bool {
   for index in 1..<model.length() {
     if model[index - 1] > model[index] {
       return false
@@ -831,9 +843,9 @@ fn deque_array_is_sorted(model : Array[Int]) -> Bool {
 
 ///|
 fn deque_array_binary_search(
-  model : Array[Int],
-  value : Int,
-) -> Result[Int, Int] {
+  model : Array[Int32],
+  value : Int32,
+) -> Result[Int32, Int32] {
   for low = 0, high = model.length(); low < high; {
     let mid = low + (high - low) / 2
     if model[mid] < value {
@@ -851,7 +863,7 @@ fn deque_array_binary_search(
 }
 
 ///|
-fn deque_array_compare(left : Array[Int], right : Array[Int]) -> Int {
+fn deque_array_compare(left : Array[Int32], right : Array[Int32]) -> Int32 {
   let length_order = left.length().compare(right.length())
   if length_order != 0 {
     return length_order
@@ -867,9 +879,9 @@ fn deque_array_compare(left : Array[Int], right : Array[Int]) -> Int {
 
 ///|
 fn deque_transition_values(
-  model : Array[Int],
+  model : Array[Int32],
   command : DequeCommand,
-) -> Array[Int] {
+) -> Array[Int32] {
   match command {
     DequeReset(values, _)
     | DequeResetFromJson(values)
@@ -992,7 +1004,7 @@ fn deque_transition_values(
 }
 
 ///|
-fn deque_max3(a : Int, b : Int, c : Int) -> Int {
+fn deque_max3(a : Int32, b : Int32, c : Int32) -> Int32 {
   deque_max(deque_max(a, b), c)
 }
 
@@ -1000,8 +1012,8 @@ fn deque_max3(a : Int, b : Int, c : Int) -> Int {
 fn deque_symbolic_capacity(
   model : DequeModel,
   command : DequeCommand,
-  next_values : Array[Int],
-) -> Int {
+  next_values : Array[Int32],
+) -> Int32 {
   match command {
     DequeReset(values, capacity) => deque_capacity_for_array(values, capacity)
     DequeResetFromJson(values) => values.length()
@@ -1035,7 +1047,7 @@ fn deque_transition_from_response(
 }
 
 ///|
-fn deque_capacity_for_array(values : Array[Int], capacity : Int) -> Int {
+fn deque_capacity_for_array(values : Array[Int32], capacity : Int32) -> Int32 {
   deque_max(values.length(), capacity)
 }
 
@@ -1369,7 +1381,7 @@ fn deque_expected_response(
 }
 
 ///|
-fn deque_zero_rand(_upper : Int) -> Int {
+fn deque_zero_rand(_upper : Int32) -> Int32 {
   0
 }
 
@@ -1389,7 +1401,7 @@ fn run_deque_command(
       (DequeItems(constructed.to_array()), [deque_observation(constructed)])
     }
     DequeFromJson(values) => {
-      let constructed : @deque.Deque[Int] = @json.from_json(values.to_json())
+      let constructed : @deque.Deque[Int32] = @json.from_json(Json(values))
       (DequeItems(constructed.to_array()), [deque_observation(constructed)])
     }
     DequeReset(values, capacity) => {
@@ -1397,7 +1409,7 @@ fn run_deque_command(
       (DequeDone, [])
     }
     DequeResetFromJson(values) => {
-      system.deque = @json.from_json(values.to_json())
+      system.deque = @json.from_json(Json(values))
       (DequeDone, [])
     }
     DequeResetWrapped(values) => {
@@ -1517,7 +1529,7 @@ fn run_deque_command(
     }
     DequeChunkByNondecreasing => {
       let chunks = deque.chunk_by((left, right) => left <= right)
-      let items : Array[Array[Int]] = []
+      let items : Array[Array[Int32]] = []
       let observations : Array[DequeObservation] = []
       chunks.each(chunk => {
         items.push(chunk.to_array())
@@ -1532,7 +1544,7 @@ fn run_deque_command(
         boundary += 1
         keep
       })
-      let items : Array[Array[Int]] = []
+      let items : Array[Array[Int32]] = []
       let observations : Array[DequeObservation] = []
       chunks.each(chunk => {
         items.push(chunk.to_array())
@@ -1541,7 +1553,7 @@ fn run_deque_command(
       (DequeNestedItems(items), observations)
     }
     DequeFlatten(nested) => {
-      let deques : Array[@deque.Deque[Int]] = []
+      let deques : Array[@deque.Deque[Int32]] = []
       for values in nested {
         deques.push(@deque.from_array(values))
       }
@@ -1549,7 +1561,7 @@ fn run_deque_command(
       (DequeItems(flattened.to_array()), [deque_observation(flattened)])
     }
     DequeFlattenWrapped(nested) => {
-      let deques : Array[@deque.Deque[Int]] = []
+      let deques : Array[@deque.Deque[Int32]] = []
       for values in nested {
         deques.push(deque_wrapped_from_array(values))
       }
@@ -1557,7 +1569,7 @@ fn run_deque_command(
       (DequeItems(flattened.to_array()), [deque_observation(flattened)])
     }
     DequeFlattenSlack(nested) => {
-      let deques : Array[@deque.Deque[Int]] = []
+      let deques : Array[@deque.Deque[Int32]] = []
       for values in nested {
         deques.push(deque_slack_from_array(values, wrapped=false))
       }
@@ -1565,7 +1577,7 @@ fn run_deque_command(
       (DequeItems(flattened.to_array()), [deque_observation(flattened)])
     }
     DequeFlattenWrappedSlack(nested) => {
-      let deques : Array[@deque.Deque[Int]] = []
+      let deques : Array[@deque.Deque[Int32]] = []
       for values in nested {
         deques.push(deque_slack_from_array(values, wrapped=true))
       }
@@ -1617,7 +1629,7 @@ fn run_deque_command(
       (DequeItems(reversed.to_array()), [deque_observation(reversed)])
     }
     DequeToJson =>
-      (DequeBool(deque.to_json() == deque.to_array().to_json()), [])
+      (DequeBool(@json.to_json(deque) == Json(deque.to_array())), [])
     DequeContains(value) => (DequeBool(deque.contains(value)), [])
     DequeSearch(value) => (DequeOptional(deque.search(value)), [])
     DequeBinarySearch(value) =>
@@ -1668,7 +1680,7 @@ fn run_deque_command(
     }
     DequeChunks(size) => {
       let chunks = deque.chunks(size)
-      let items : Array[Array[Int]] = []
+      let items : Array[Array[Int32]] = []
       let observations : Array[DequeObservation] = []
       chunks.each(chunk => {
         items.push(chunk.to_array())
@@ -2017,7 +2029,7 @@ fn deque_bind_response(
 }
 
 ///|
-fn deque_shrink_int(value : Int) -> Array[Int] {
+fn deque_shrink_int(value : Int32) -> Array[Int32] {
   if value == 0 {
     []
   } else {
@@ -2026,12 +2038,12 @@ fn deque_shrink_int(value : Int) -> Array[Int] {
 }
 
 ///|
-fn deque_shrink_values(values : Array[Int]) -> Array[Array[Int]] {
+fn deque_shrink_values(values : Array[Int32]) -> Array[Array[Int32]] {
   if values.length() == 0 {
     []
   } else {
-    let empty : Array[Int] = []
-    let first_half : Array[Int] = []
+    let empty : Array[Int32] = []
+    let first_half : Array[Int32] = []
     for index in 0..<(values.length() / 2) {
       first_half.push(values[index])
     }
@@ -2229,13 +2241,13 @@ fn deque_shrinker(
 }
 
 ///|
-fn deque_small_value(rng : @splitmix.RandomState) -> Int {
+fn deque_small_value(rng : @splitmix.RandomState) -> Int32 {
   rng.next_positive_int() % 13 - 6
 }
 
 ///|
-fn deque_small_array(rng : @splitmix.RandomState) -> Array[Int] {
-  let values : Array[Int] = []
+fn deque_small_array(rng : @splitmix.RandomState) -> Array[Int32] {
+  let values : Array[Int32] = []
   let len = rng.next_positive_int() % 4
   for _ in 0..<len {
     values.push(deque_small_value(rng))
@@ -2244,8 +2256,8 @@ fn deque_small_array(rng : @splitmix.RandomState) -> Array[Int] {
 }
 
 ///|
-fn deque_range_array(len : Int) -> Array[Int] {
-  let values : Array[Int] = []
+fn deque_range_array(len : Int32) -> Array[Int32] {
+  let values : Array[Int32] = []
   for index in 0..<len {
     values.push(index + 11)
   }
@@ -2253,7 +2265,7 @@ fn deque_range_array(len : Int) -> Array[Int] {
 }
 
 ///|
-fn deque_string_range_array(len : Int) -> Array[String] {
+fn deque_string_range_array(len : Int32) -> Array[String] {
   let values : Array[String] = []
   for index in 0..<len {
     values.push("value-\{index + 11}")
@@ -2264,8 +2276,8 @@ fn deque_string_range_array(len : Int) -> Array[String] {
 ///|
 fn deque_string_array_drain(
   source : Array[String],
-  start : Int,
-  len : Int,
+  start : Int32,
+  len : Int32,
 ) -> (Array[String], Array[String]) {
   let drained : Array[String] = []
   let kept : Array[String] = []
@@ -2316,9 +2328,9 @@ fn deque_string_array_retain_map_call_index(
 fn deque_string_array_blit_to(
   source : Array[String],
   dst : Array[String],
-  src_offset : Int,
-  dst_offset : Int,
-  len : Int,
+  src_offset : Int32,
+  dst_offset : Int32,
+  len : Int32,
 ) -> Array[String] {
   let result = dst.copy()
   let required_len = dst_offset + len
@@ -2360,7 +2372,7 @@ fn deque_string_join_model(
 ///|
 fn deque_random_generator(
   model : DequeModel,
-  size : Int,
+  size : Int32,
   rng : @splitmix.RandomState,
 ) -> DequeCommand? {
   ignore(size)
@@ -2463,7 +2475,7 @@ fn deque_random_generator(
 ///|
 fn deque_storage_generator(
   model : DequeModel,
-  size : Int,
+  size : Int32,
   rng : @splitmix.RandomState,
 ) -> DequeCommand? {
   ignore(size)
@@ -2545,7 +2557,7 @@ fn deque_storage_generator(
 ///|
 fn deque_drain_generator(
   model : DequeModel,
-  size : Int,
+  size : Int32,
   rng : @splitmix.RandomState,
 ) -> DequeCommand? {
   ignore(size)
@@ -2605,7 +2617,7 @@ fn deque_drain_generator(
 
 ///|
 fn deque_base_spec(
-  generator : (DequeModel, Int, @splitmix.RandomState) -> DequeCommand?,
+  generator : (DequeModel, Int32, @splitmix.RandomState) -> DequeCommand?,
 ) -> @quickcheck_statemachine.StateMachine[
   DequeModel,
   DequeModel,
@@ -2846,7 +2858,7 @@ test "deque exhaustive array view construction matches model" {
     let source = deque_range_array(source_len)
     for start in 0..<(source_len + 1) {
       for end in start..<(source_len + 1) {
-        let expected : Array[Int] = []
+        let expected : Array[Int32] = []
         for index in start..<end {
           expected.push(source[index])
         }
@@ -3218,8 +3230,8 @@ test "deque wrapped as_views split matches storage model" {
       for head_shift in 0..<head_limit {
         let deque = deque_positioned_from_array(values, capacity, head_shift)
         let (front, back) = deque.as_views()
-        let expected_front : Array[Int] = []
-        let expected_back : Array[Int] = []
+        let expected_front : Array[Int32] = []
+        let expected_back : Array[Int32] = []
         let front_len = if len == 0 {
           0
         } else {
@@ -3311,7 +3323,7 @@ fn deque_script(
     })
     continue index + 1, deque_transition(model, command)
   }
-  { commands: scripted }
+  { commands: scripted, }
 }
 
 ///|

@@ -13,6 +13,12 @@ pub(all) struct ParallelCommands[CSym, RSym] {
 } derive(Eq, Debug)
 
 ///|
+pub extend ParallelCommands with Eq::{not_equal, equal}
+
+///|
+pub extend ParallelCommands with Debug::{to_repr}
+
+///|
 /// Generalized representation for more than two parallel suffixes.
 ///
 /// This mirrors the structure described by QSM: a sequential prefix followed by
@@ -23,17 +29,23 @@ pub(all) struct NParallelCommands[CSym, RSym] {
 } derive(Eq, Debug)
 
 ///|
+pub extend NParallelCommands with Eq::{not_equal, equal}
+
+///|
+pub extend NParallelCommands with Debug::{to_repr}
+
+///|
 // Copies a half-open slice of a generated symbolic program.
 fn[CSym, RSym] take_commands(
   commands : Commands[CSym, RSym],
-  start : Int,
-  end : Int,
+  start : Int32,
+  end : Int32,
 ) -> Commands[CSym, RSym] {
   let taken : Array[Command[CSym, RSym]] = []
   for index in start..<end {
     taken.push(commands.commands[index])
   }
-  { commands: taken }
+  { commands: taken, }
 }
 
 ///|
@@ -45,7 +57,7 @@ fn[CSym, RSym] take_commands(
 /// deterministic linearization.
 pub fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] generate_parallel_commands(
   spec : StateMachine[MSym, MCon, CSym, CCon, RSym, RCon, V, S],
-  config? : RunConfig = RunConfig::default(),
+  config~ : RunConfig = RunConfig::default(),
 ) -> Result[ParallelCommands[CSym, RSym], GenerationFailure[MSym, CSym, RSym]] {
   match generate_commands(spec, config~) {
     Err(failure) => Err(failure)
@@ -89,7 +101,7 @@ pub fn[CSym, RSym] linearise(
 pub fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] run_parallel_commands(
   spec : StateMachine[MSym, MCon, CSym, CCon, RSym, RCon, V, S],
   commands : ParallelCommands[CSym, RSym],
-  config? : RunConfig = RunConfig::default(),
+  config~ : RunConfig = RunConfig::default(),
 ) -> Result[
   RunReport[CSym, RSym, CCon, RCon],
   RunFailure[MSym, MCon, CSym, CCon, RSym, RCon],

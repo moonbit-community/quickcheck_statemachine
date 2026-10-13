@@ -6,13 +6,13 @@
 // dangling symbolic references.
 enum ShrinkCommand {
   ShrinkNew
-  ShrinkUse(@quickcheck_statemachine.Ref[Int])
+  ShrinkUse(@quickcheck_statemachine.Ref[Int32])
 } derive(Eq, Debug)
 
 ///|
 enum ShrinkConcreteCommand {
   ShrinkConcreteNew
-  ShrinkConcreteUse(Int)
+  ShrinkConcreteUse(Int32)
 } derive(Eq, Debug)
 
 ///|
@@ -23,7 +23,7 @@ enum ShrinkResponse {
 
 ///|
 enum ShrinkConcreteResponse {
-  ShrinkConcreteNewed(Int)
+  ShrinkConcreteNewed(Int32)
   ShrinkConcreteUsed
 } derive(Eq, Debug)
 
@@ -43,12 +43,12 @@ fn shrink_ref_known(
 ///|
 fn shrink_spec() -> @quickcheck_statemachine.StateMachine[
   Array[@quickcheck_statemachine.Var],
-  Int,
+  Int32,
   ShrinkCommand,
   ShrinkConcreteCommand,
   ShrinkResponse,
   ShrinkConcreteResponse,
-  Int,
+  Int32,
   Unit,
 ] {
   @quickcheck_statemachine.StateMachine::new(
@@ -147,11 +147,11 @@ fn shrink_spec() -> @quickcheck_statemachine.StateMachine[
 // rejects the candidate, which is the essential "remove dependent commands
 // together" behavior required for stateful programs.
 test "shrinking rejects candidates with dangling symbolic refs" {
-  let v0 = @quickcheck_statemachine.Var::{ id: 0 }
+  let v0 = @quickcheck_statemachine.Var::{ id: 0, }
   let commands = @quickcheck_statemachine.Commands::{
     commands: [
-      { command: ShrinkNew, response: ShrinkNewed(v0), vars: [v0] },
-      { command: ShrinkUse(Symbolic(v0)), response: ShrinkUsed, vars: [] },
+      { command: ShrinkNew, response: ShrinkNewed(v0), vars: [v0], },
+      { command: ShrinkUse(Symbolic(v0)), response: ShrinkUsed, vars: [], },
     ],
   }
   let candidates = @quickcheck_statemachine.shrink_commands_once(
