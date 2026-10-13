@@ -5,8 +5,8 @@
 // missing-variable errors, and merging disjoint environments.
 test "environment lookup insert merge" {
   let first = @quickcheck_statemachine.Environment::empty()
-  let v0 = @quickcheck_statemachine.Var::{ id: 0 }
-  let v1 = @quickcheck_statemachine.Var::{ id: 1 }
+  let v0 = @quickcheck_statemachine.Var::{ id: 0, }
+  let v1 = @quickcheck_statemachine.Var::{ id: 1, }
   let first = first.insert(v0, 10)
   assert_true(first.contains(v0))
   guard first.lookup(v0) is Ok(10) else { fail("expected v0 binding") }
@@ -14,5 +14,5 @@ test "environment lookup insert merge" {
   let merged = first.merge(second)
   guard merged is Ok(env) else { fail("expected merge to succeed") }
   guard env.lookup(v1) is Ok(20) else { fail("expected v1 binding") }
-  assert_true(env.lookup({ id: 9 }) is Err(_))
+  assert_true(env.lookup({ id: 9, }) is Err(_))
 }

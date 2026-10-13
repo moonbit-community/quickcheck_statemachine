@@ -8,9 +8,9 @@ pub(all) struct RunReport[CSym, RSym, CCon, RCon] {
   // Seed used for the first generated case.
   seed : UInt64
   // Number of cases completed by `check`, or 1 for direct replay.
-  cases_run : Int
+  cases_run : Int32
   // Total number of concrete commands executed.
-  commands_run : Int
+  commands_run : Int32
   // Last generated or replayed symbolic program.
   commands : Commands[CSym, RSym]
   // Concrete invocation/response trace from the last replay.
@@ -18,12 +18,18 @@ pub(all) struct RunReport[CSym, RSym, CCon, RCon] {
   // Deduplicated semantic labels observed during replay.
   labels : Array[String]
   // Command-name counts for the symbolic program.
-  command_distribution : Array[(String, Int)]
+  command_distribution : Array[(String, Int32)]
   // Number of accepted shrink steps used before this report was produced.
-  shrinks : Int
+  shrinks : Int32
   // Number of shrink rounds used before this report was produced.
-  shrink_rounds : Int
+  shrink_rounds : Int32
 } derive(Eq, Debug)
+
+///|
+pub extend RunReport with Eq::{not_equal, equal}
+
+///|
+pub extend RunReport with Debug::{to_repr}
 
 ///|
 /// Failures that can occur while generating, replaying, checking, or shrinking.
@@ -37,54 +43,54 @@ pub(all) enum RunFailure[MSym, MCon, CSym, CCon, RSym, RCon] {
   // Symbolic generation failed before a runnable program was available.
   GenerationFailed(
     failure~ : GenerationFailure[MSym, CSym, RSym],
-    shrinks~ : Int,
-    shrink_rounds~ : Int
+    shrinks~ : Int32,
+    shrink_rounds~ : Int32
   )
   // The mutable system under test could not be initialized.
   InitFailed(
     commands~ : Commands[CSym, RSym],
     message~ : String,
-    shrinks~ : Int,
-    shrink_rounds~ : Int
+    shrinks~ : Int32,
+    shrink_rounds~ : Int32
   )
   // A symbolic command mentioned a variable missing from the execution
   // environment.
   ReifyFailed(
-    step_index~ : Int,
+    step_index~ : Int32,
     symbolic_command~ : CSym,
     error~ : EnvError,
     commands~ : Commands[CSym, RSym],
     history~ : History[CCon, RCon],
-    shrinks~ : Int,
-    shrink_rounds~ : Int
+    shrinks~ : Int32,
+    shrink_rounds~ : Int32
   )
   // `run_command` raised while executing the concrete command.
   ExecutionFailed(
-    step_index~ : Int,
+    step_index~ : Int32,
     command~ : CCon,
     symbolic_command~ : CSym,
     model~ : MCon,
     commands~ : Commands[CSym, RSym],
     history~ : History[CCon, RCon],
     message~ : String,
-    shrinks~ : Int,
-    shrink_rounds~ : Int
+    shrinks~ : Int32,
+    shrink_rounds~ : Int32
   )
   // The concrete response could not be matched with the symbolic response that
   // predicted fresh variables.
   BindFailed(
-    step_index~ : Int,
+    step_index~ : Int32,
     symbolic_response~ : RSym,
     response~ : RCon,
     error~ : BindError,
     commands~ : Commands[CSym, RSym],
     history~ : History[CCon, RCon],
-    shrinks~ : Int,
-    shrink_rounds~ : Int
+    shrinks~ : Int32,
+    shrink_rounds~ : Int32
   )
   // The model rejected the concrete response for this command.
   PostconditionFailed(
-    step_index~ : Int,
+    step_index~ : Int32,
     command~ : CCon,
     symbolic_command~ : CSym,
     response~ : RCon,
@@ -93,26 +99,26 @@ pub(all) enum RunFailure[MSym, MCon, CSym, CCon, RSym, RCon] {
     logic~ : Logic,
     commands~ : Commands[CSym, RSym],
     history~ : History[CCon, RCon],
-    shrinks~ : Int,
-    shrink_rounds~ : Int
+    shrinks~ : Int32,
+    shrink_rounds~ : Int32
   )
   // The model-wide invariant failed after a successful command transition.
   InvariantBroken(
-    step_index~ : Int,
+    step_index~ : Int32,
     model~ : MCon,
     logic~ : Logic,
     commands~ : Commands[CSym, RSym],
     history~ : History[CCon, RCon],
-    shrinks~ : Int,
-    shrink_rounds~ : Int
+    shrinks~ : Int32,
+    shrink_rounds~ : Int32
   )
   // Cleanup raised after replay. The command history is still preserved.
   CleanupFailed(
     commands~ : Commands[CSym, RSym],
     history~ : History[CCon, RCon],
     message~ : String,
-    shrinks~ : Int,
-    shrink_rounds~ : Int
+    shrinks~ : Int32,
+    shrink_rounds~ : Int32
   )
   // Execution succeeded, but required labels or command names were not covered.
   CoverageFailed(
@@ -120,10 +126,16 @@ pub(all) enum RunFailure[MSym, MCon, CSym, CCon, RSym, RCon] {
     history~ : History[CCon, RCon],
     missing_labels~ : Array[String],
     missing_command_names~ : Array[String],
-    shrinks~ : Int,
-    shrink_rounds~ : Int
+    shrinks~ : Int32,
+    shrink_rounds~ : Int32
   )
 } derive(Eq, Debug)
+
+///|
+pub extend RunFailure with Eq::{not_equal, equal}
+
+///|
+pub extend RunFailure with Debug::{to_repr}
 
 ///|
 // Normalizes any raised MoonBit error into a message that can be stored in
@@ -136,8 +148,8 @@ fn error_message(error : Error) -> String {
 // Rewrites the shrink counters inside a failure after minimization has finished.
 fn[MSym, MCon, CSym, CCon, RSym, RCon] with_shrink_stats(
   failure : RunFailure[MSym, MCon, CSym, CCon, RSym, RCon],
-  shrinks : Int,
-  shrink_rounds : Int,
+  shrinks : Int32,
+  shrink_rounds : Int32,
 ) -> RunFailure[MSym, MCon, CSym, CCon, RSym, RCon] {
   match failure {
     InvalidConfig(message) => InvalidConfig(message)
@@ -299,7 +311,7 @@ fn missing_required_values(
 pub fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] run_commands(
   spec : StateMachine[MSym, MCon, CSym, CCon, RSym, RCon, V, S],
   commands : Commands[CSym, RSym],
-  config? : RunConfig = RunConfig::default(),
+  config~ : RunConfig = RunConfig::default(),
 ) -> Result[
   RunReport[CSym, RSym, CCon, RCon],
   RunFailure[MSym, MCon, CSym, CCon, RSym, RCon],
@@ -339,7 +351,7 @@ pub fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] run_commands(
                 )
               }
               Ok(concrete_command) => {
-                let pid = Pid::{ id: step_index }
+                let pid = Pid::{ id: step_index, }
                 let invoked = history.push(
                   Invocation(pid~, command=concrete_command),
                 )
@@ -528,7 +540,7 @@ pub fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] run_commands(
 pub fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] replay(
   spec : StateMachine[MSym, MCon, CSym, CCon, RSym, RCon, V, S],
   commands : Commands[CSym, RSym],
-  config? : RunConfig = RunConfig::default(),
+  config~ : RunConfig = RunConfig::default(),
 ) -> Result[
   RunReport[CSym, RSym, CCon, RCon],
   RunFailure[MSym, MCon, CSym, CCon, RSym, RCon],
@@ -543,7 +555,7 @@ fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] shrink_failure(
   spec : StateMachine[MSym, MCon, CSym, CCon, RSym, RCon, V, S],
   commands : Commands[CSym, RSym],
   config : RunConfig,
-) -> (Commands[CSym, RSym], Int, Int) {
+) -> (Commands[CSym, RSym], Int32, Int32) {
   for round = 0, current = commands, shrinks = 0; round <
      config.max_shrink_rounds &&
      shrinks < config.max_shrinks; {
@@ -568,7 +580,7 @@ fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] shrink_failure(
 /// counterexample should be found.
 pub fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] check(
   spec : StateMachine[MSym, MCon, CSym, CCon, RSym, RCon, V, S],
-  config? : RunConfig = RunConfig::default(),
+  config~ : RunConfig = RunConfig::default(),
 ) -> Result[
   RunReport[CSym, RSym, CCon, RCon],
   RunFailure[MSym, MCon, CSym, CCon, RSym, RCon],
@@ -655,7 +667,7 @@ pub fn[
   S,
 ] assert_check(
   spec : StateMachine[MSym, MCon, CSym, CCon, RSym, RCon, V, S],
-  config? : RunConfig = RunConfig::default(),
+  config~ : RunConfig = RunConfig::default(),
 ) -> RunReport[CSym, RSym, CCon, RCon] raise {
   match check(spec, config~) {
     Ok(report) => report
@@ -680,7 +692,7 @@ pub fn[
 ] assert_replay(
   spec : StateMachine[MSym, MCon, CSym, CCon, RSym, RCon, V, S],
   commands : Commands[CSym, RSym],
-  config? : RunConfig = RunConfig::default(),
+  config~ : RunConfig = RunConfig::default(),
 ) -> RunReport[CSym, RSym, CCon, RCon] raise {
   match replay(spec, commands, config~) {
     Ok(report) => report

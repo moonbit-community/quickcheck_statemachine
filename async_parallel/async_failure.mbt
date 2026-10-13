@@ -14,17 +14,17 @@ pub(all) enum AsyncRunFailure[MSym, MCon, CSym, CCon, RSym, RCon] {
     commands~ : @qsm.Commands[CSym, RSym],
     history~ : @qsm.History[CCon, RCon],
     logic~ : @qsm.Logic,
-    shrinks~ : Int,
-    shrink_rounds~ : Int
+    shrinks~ : Int32,
+    shrink_rounds~ : Int32
   )
   LinearizationBudgetExceeded(
     parallel_commands~ : @qsm.ParallelCommands[CSym, RSym],
     commands~ : @qsm.Commands[CSym, RSym],
     history~ : @qsm.History[CCon, RCon],
-    operation_count~ : Int,
-    max_operations~ : Int,
-    shrinks~ : Int,
-    shrink_rounds~ : Int
+    operation_count~ : Int32,
+    max_operations~ : Int32,
+    shrinks~ : Int32,
+    shrink_rounds~ : Int32
   )
   BranchEnvironmentMergeFailed(
     parallel_commands~ : @qsm.ParallelCommands[CSym, RSym],
@@ -32,10 +32,16 @@ pub(all) enum AsyncRunFailure[MSym, MCon, CSym, CCon, RSym, RCon] {
     history~ : @qsm.History[CCon, RCon],
     error~ : @qsm.EnvError,
     logic~ : @qsm.Logic,
-    shrinks~ : Int,
-    shrink_rounds~ : Int
+    shrinks~ : Int32,
+    shrink_rounds~ : Int32
   )
 } derive(Eq, Debug)
+
+///|
+pub extend AsyncRunFailure with Eq::{not_equal, equal}
+
+///|
+pub extend AsyncRunFailure with Debug::{to_repr}
 
 ///|
 fn[MSym, MCon, CSym, CCon, RSym, RCon] wrap_replay_failure(

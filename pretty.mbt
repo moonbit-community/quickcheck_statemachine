@@ -6,7 +6,7 @@
 pub fn[CSym : @debug.Debug, RSym : @debug.Debug] format_commands(
   commands : Commands[CSym, RSym],
 ) -> String {
-  let builder = StringBuilder::new()
+  let builder = StringBuilder()
   for index, command in commands.commands {
     builder.write_string("\{index}: ")
     builder.write_string(@debug.to_string(command.command))
@@ -22,7 +22,7 @@ pub fn[CSym : @debug.Debug, RSym : @debug.Debug] format_commands(
 pub fn[C : @debug.Debug, R : @debug.Debug] format_history(
   history : History[C, R],
 ) -> String {
-  let builder = StringBuilder::new()
+  let builder = StringBuilder()
   for event in history.events {
     builder.write_string(@debug.to_string(event))
     builder.write_string("\n")
@@ -86,7 +86,7 @@ pub fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] run_saved_commands(
   spec : StateMachine[MSym, MCon, CSym, CCon, RSym, RCon, V, S],
   input : String,
   decode : (String) -> Result[Commands[CSym, RSym], String],
-  config? : RunConfig = RunConfig::default(),
+  config~ : RunConfig = RunConfig::default(),
 ) -> Result[
   RunReport[CSym, RSym, CCon, RCon],
   RunFailure[MSym, MCon, CSym, CCon, RSym, RCon],

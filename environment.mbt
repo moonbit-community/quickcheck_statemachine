@@ -10,6 +10,12 @@ pub(all) enum EnvError {
 } derive(Eq, Debug)
 
 ///|
+pub extend EnvError with Eq::{not_equal, equal}
+
+///|
+pub extend EnvError with Debug::{to_repr}
+
+///|
 /// Errors raised while binding a real response back into the execution
 /// environment.
 pub(all) enum BindError {
@@ -17,8 +23,14 @@ pub(all) enum BindError {
   BindMessage(String)
   // The symbolic response predicted a different number of freshly created
   // variables than the concrete response can provide.
-  BindVarCountMismatch(expected~ : Int, actual~ : Int)
+  BindVarCountMismatch(expected~ : Int32, actual~ : Int32)
 } derive(Eq, Debug)
+
+///|
+pub extend BindError with Eq::{not_equal, equal}
+
+///|
+pub extend BindError with Debug::{to_repr}
 
 ///|
 /// Runtime map from symbolic variables to concrete values.
@@ -31,9 +43,12 @@ pub(all) struct Environment[V] {
 } derive(Debug)
 
 ///|
+pub extend Environment with Debug::{to_repr}
+
+///|
 /// Creates an empty execution environment.
 pub fn[V] Environment::empty() -> Environment[V] {
-  { bindings: Map([]) }
+  { bindings: Map([]), }
 }
 
 ///|
@@ -97,6 +112,6 @@ pub fn[V] Environment::merge(
 
 ///|
 /// Returns the number of symbolic variables with concrete bindings.
-pub fn[V] Environment::length(self : Environment[V]) -> Int {
+pub fn[V] Environment::length(self : Environment[V]) -> Int32 {
   self.bindings.length()
 }

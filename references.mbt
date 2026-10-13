@@ -6,8 +6,17 @@
 /// other runtime values. `Var` is the stable placeholder that lets later
 /// symbolic commands refer to a value that will only be known after replay.
 pub(all) struct Var {
-  id : Int
+  id : Int32
 } derive(Eq, Hash, Debug)
+
+///|
+pub extend Var with Eq::{not_equal, equal}
+
+///|
+pub extend Var with Hash::{hash, hash_combine}
+
+///|
+pub extend Var with Debug::{to_repr}
 
 ///|
 /// Formats a symbolic variable using the short form that appears in generated
@@ -34,25 +43,37 @@ pub(all) enum Ref[V] {
 } derive(Eq, Debug)
 
 ///|
+pub extend Ref with Eq::{not_equal, equal}
+
+///|
+pub extend Ref with Debug::{to_repr}
+
+///|
 /// Deterministic source of fresh symbolic variables for mock responses.
 ///
 /// `GenSym` is threaded through generation and shrink validation so that a
 /// regenerated prefix allocates the same sequence of symbolic variables. That
 /// determinism is what makes command dependencies shrink safely.
 pub(all) struct GenSym {
-  mut next : Int
+  mut next : Int32
 } derive(Eq, Debug)
+
+///|
+pub extend GenSym with Eq::{not_equal, equal}
+
+///|
+pub extend GenSym with Debug::{to_repr}
 
 ///|
 /// Creates a fresh symbolic-variable supply starting at `v0`.
 pub fn GenSym::new() -> GenSym {
-  { next: 0 }
+  { next: 0, }
 }
 
 ///|
 /// Allocates one variable and returns the advanced supply.
 pub fn GenSym::fresh(self : GenSym) -> (Var, GenSym) {
-  let fresh_var = Var::{ id: self.next }
+  let fresh_var = Var::{ id: self.next, }
   self.next = self.next + 1
   (fresh_var, self)
 }

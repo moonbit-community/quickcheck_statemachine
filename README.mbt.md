@@ -28,21 +28,21 @@ references when the program is executed.
 ```mbt check
 ///|
 struct RefId {
-  id : Int
+  id : Int32
 } derive(Eq, Debug)
 
 ///|
 enum Command {
   Create
   Read(@quickcheck_statemachine.Ref[RefId])
-  Write(@quickcheck_statemachine.Ref[RefId], Int)
+  Write(@quickcheck_statemachine.Ref[RefId], Int32)
   Increment(@quickcheck_statemachine.Ref[RefId])
 } derive(Eq, Debug)
 
 ///|
 enum Response {
   Created(@quickcheck_statemachine.Ref[RefId])
-  ReadValue(Int)
+  ReadValue(Int32)
   Written
   Incremented
 } derive(Eq, Debug)
@@ -66,14 +66,14 @@ enum Bug {
 
 ///|
 struct SystemEntry {
-  id : Int
-  value : Int
+  id : Int32
+  value : Int32
 } derive(Eq, Debug)
 
 ///|
 struct ReferenceSystem {
   refs : Array[SystemEntry]
-  mut next_id : Int
+  mut next_id : Int32
 } derive(Eq, Debug)
 ```
 
@@ -82,7 +82,7 @@ concrete ids.
 
 ```mbt check
 ///|
-fn reference_id(reference : @quickcheck_statemachine.Ref[RefId]) -> Int? {
+fn reference_id(reference : @quickcheck_statemachine.Ref[RefId]) -> Int32? {
   match reference {
     Concrete(ref_id) => Some(ref_id.id)
     Symbolic(_) => None
@@ -90,7 +90,7 @@ fn reference_id(reference : @quickcheck_statemachine.Ref[RefId]) -> Int? {
 }
 
 ///|
-fn system_lookup(system : ReferenceSystem, id : Int) -> Int? {
+fn system_lookup(system : ReferenceSystem, id : Int32) -> Int32? {
   for entry in system.refs {
     if entry.id == id {
       return Some(entry.value)
@@ -100,10 +100,10 @@ fn system_lookup(system : ReferenceSystem, id : Int) -> Int? {
 }
 
 ///|
-fn system_update(system : ReferenceSystem, id : Int, value : Int) -> Unit {
+fn system_update(system : ReferenceSystem, id : Int32, value : Int32) -> Unit {
   for index = 0; index < system.refs.length(); {
     if system.refs[index].id == id {
-      system.refs[index] = { id, value }
+      system.refs[index] = { id, value, }
       return
     }
     continue index + 1
@@ -125,7 +125,7 @@ fn semantics(
     Create => {
       let id = system.next_id
       system.next_id += 1
-      system.refs.push({ id, value: 0 })
+      system.refs.push({ id, value: 0, })
       Created(Concrete({ id, }))
     }
     Read(reference) =>
@@ -174,7 +174,7 @@ reference should contain.
 ///|
 struct ModelEntry {
   reference : @quickcheck_statemachine.Ref[RefId]
-  value : Int
+  value : Int32
 } derive(Eq, Debug)
 
 ///|
@@ -184,7 +184,7 @@ struct Model {
 
 ///|
 fn model_empty() -> Model {
-  { refs: [] }
+  { refs: [], }
 }
 ```
 
@@ -196,7 +196,7 @@ test; they are the specification used to check it.
 fn model_lookup(
   model : Model,
   reference : @quickcheck_statemachine.Ref[RefId],
-) -> Int? {
+) -> Int32? {
   for entry in model.refs {
     if entry.reference == reference {
       return Some(entry.value)
@@ -217,17 +217,17 @@ fn model_member(
 fn model_update(
   model : Model,
   reference : @quickcheck_statemachine.Ref[RefId],
-  value : Int,
+  value : Int32,
 ) -> Model {
   let refs = model.refs.copy()
   for index = 0; index < refs.length(); {
     if refs[index].reference == reference {
-      refs[index] = { reference, value }
+      refs[index] = { reference, value, }
       return { refs, }
     }
     continue index + 1
   }
-  refs.push({ reference, value })
+  refs.push({ reference, value, })
   { refs, }
 }
 ```
@@ -325,7 +325,7 @@ fn choose_reference(
 ///|
 fn generator(
   model : Model,
-  size : Int,
+  size : Int32,
   rng : @splitmix.RandomState,
 ) -> Command? {
   ignore(size)
@@ -533,10 +533,10 @@ fn command_name(command : Command) -> String {
 
 ///|
 fn config(
-  max_commands~ : Int,
-  seed? : UInt64 = 11,
-  cases? : Int = 1,
-  shrink? : Bool = true,
+  max_commands~ : Int32,
+  seed~ : UInt64 = 11,
+  cases~ : Int32 = 1,
+  shrink~ : Bool = true,
 ) -> @quickcheck_statemachine.RunConfig {
   {
     seed,
@@ -557,7 +557,7 @@ fn config(
 ///|
 fn sm(
   bug : Bug,
-  script? : Array[Command]? = None,
+  script~ : Array[Command]? = None,
 ) -> @quickcheck_statemachine.StateMachine[
   Model,
   Model,
@@ -568,11 +568,11 @@ fn sm(
   RefId,
   ReferenceSystem,
 ] {
-  let cursor : Array[Int] = [0]
+  let cursor : Array[Int32] = [0]
   @quickcheck_statemachine.StateMachine::new(
     init_symbolic_model=model_empty,
     init_concrete_model=model_empty,
-    init_system=() => { refs: [], next_id: 0 },
+    init_system=() => { refs: [], next_id: 0, },
     generator=(model, size, rng) => {
       match script {
         Some(commands) => {

@@ -26,7 +26,7 @@ struct FsFileEntry {
 
 ///|
 struct FsOpenEntry {
-  handle : Int
+  handle : Int32
   file : FsFile
 } derive(Eq, Debug)
 
@@ -39,7 +39,7 @@ struct FsModel {
   dirs : Array[FsDir]
   files : Array[FsFileEntry]
   handles : Array[FsOpenEntry]
-  next_handle : Int
+  next_handle : Int32
 } derive(Eq, Debug)
 
 ///|
@@ -47,7 +47,7 @@ struct FsSystem {
   dirs : Array[FsDir]
   files : Array[FsFileEntry]
   mut handles : Array[FsOpenEntry]
-  mut next_handle : Int
+  mut next_handle : Int32
 } derive(Eq, Debug)
 
 ///|
@@ -62,15 +62,15 @@ enum FsErr {
 enum FsCommand {
   FsMkDir(FsDir)
   FsOpen(FsFile)
-  FsWrite(Int, String)
-  FsClose(Int)
+  FsWrite(Int32, String)
+  FsClose(Int32)
   FsRead(FsFile)
 } derive(Eq, Debug)
 
 ///|
 enum FsSuccess {
   FsUnit
-  FsHandle(FsFile, Int)
+  FsHandle(FsFile, Int32)
   FsText(String)
 } derive(Eq, Debug)
 
@@ -83,7 +83,7 @@ enum FsResponse {
 ///|
 enum FsConcreteValue {
   FsFileValue(FsFile)
-  FsHandleValue(Int)
+  FsHandleValue(Int32)
 } derive(Eq, Debug)
 
 ///|
@@ -122,8 +122,8 @@ enum FsFileExpr {
 enum FsSymCommand {
   FsSymMkDir(FsDir)
   FsSymOpen(FsFile)
-  FsSymWrite(@quickcheck_statemachine.Ref[Int], String)
-  FsSymClose(@quickcheck_statemachine.Ref[Int])
+  FsSymWrite(@quickcheck_statemachine.Ref[Int32], String)
+  FsSymClose(@quickcheck_statemachine.Ref[Int32])
   FsSymRead(FsFileExpr)
 } derive(Eq, Debug)
 
@@ -147,7 +147,7 @@ fn fs_dir(parts : Array[String]) -> FsDir {
 
 ///|
 fn fs_file(dir : FsDir, name : String) -> FsFile {
-  { dir, name }
+  { dir, name, }
 }
 
 ///|
@@ -157,7 +157,7 @@ fn fs_root_dir() -> FsDir {
 
 ///|
 fn fs_empty_model() -> FsModel {
-  { dirs: [fs_root_dir()], files: [], handles: [], next_handle: 0 }
+  { dirs: [fs_root_dir()], files: [], handles: [], next_handle: 0, }
 }
 
 ///|
@@ -173,7 +173,7 @@ fn fs_empty_sym_model() -> FsSymModel {
 
 ///|
 fn fs_new_system() -> FsSystem {
-  { dirs: [fs_root_dir()], files: [], handles: [], next_handle: 0 }
+  { dirs: [fs_root_dir()], files: [], handles: [], next_handle: 0, }
 }
 
 ///|
@@ -212,7 +212,7 @@ fn fs_parent_exists(dirs : Array[FsDir], dir : FsDir) -> Bool {
 }
 
 ///|
-fn fs_file_index(files : Array[FsFileEntry], file : FsFile) -> Int? {
+fn fs_file_index(files : Array[FsFileEntry], file : FsFile) -> Int32? {
   for i = 0; i < files.length(); {
     if files[i].file == file {
       break Some(i)
@@ -225,7 +225,7 @@ fn fs_file_index(files : Array[FsFileEntry], file : FsFile) -> Int? {
 }
 
 ///|
-fn fs_open_index(handles : Array[FsOpenEntry], handle : Int) -> Int? {
+fn fs_open_index(handles : Array[FsOpenEntry], handle : Int32) -> Int32? {
   for i = 0; i < handles.length(); {
     if handles[i].handle == handle {
       break Some(i)
@@ -241,7 +241,7 @@ fn fs_open_index(handles : Array[FsOpenEntry], handle : Int) -> Int? {
 fn fs_sym_open_index(
   handles : Array[FsSymOpenEntry],
   handle : @quickcheck_statemachine.Var,
-) -> Int? {
+) -> Int32? {
   for i = 0; i < handles.length(); {
     if handles[i].handle == handle {
       break Some(i)
@@ -330,8 +330,8 @@ fn fs_write_file(
 ) -> Array[FsFileEntry] {
   let next = files.copy()
   match fs_file_index(next, file) {
-    Some(index) => next[index] = { file, content }
-    None => next.push({ file, content })
+    Some(index) => next[index] = { file, content, }
+    None => next.push({ file, content, })
   }
   next
 }
@@ -339,7 +339,7 @@ fn fs_write_file(
 ///|
 fn fs_remove_open(
   handles : Array[FsOpenEntry],
-  handle : Int,
+  handle : Int32,
 ) -> Array[FsOpenEntry] {
   let next : Array[FsOpenEntry] = []
   for entry in handles {
@@ -394,14 +394,14 @@ fn fs_model_open(model : FsModel, file : FsFile) -> (FsResponse, FsModel) {
   } else {
     let files = model.files.copy()
     if fs_file_index(files, file) is None {
-      files.push({ file, content: "" })
+      files.push({ file, content: "", })
     }
     let handle = model.next_handle
     let handles = model.handles.copy()
-    handles.push({ handle, file })
+    handles.push({ handle, file, })
     (
       FsSucceeded(FsHandle(file, handle)),
-      { dirs: model.dirs, files, handles, next_handle: handle + 1 },
+      { dirs: model.dirs, files, handles, next_handle: handle + 1, },
     )
   }
 }
@@ -409,7 +409,7 @@ fn fs_model_open(model : FsModel, file : FsFile) -> (FsResponse, FsModel) {
 ///|
 fn fs_model_write(
   model : FsModel,
-  handle : Int,
+  handle : Int32,
   content : String,
 ) -> (FsResponse, FsModel) {
   match fs_open_index(model.handles, handle) {
@@ -430,7 +430,7 @@ fn fs_model_write(
 }
 
 ///|
-fn fs_model_close(model : FsModel, handle : Int) -> (FsResponse, FsModel) {
+fn fs_model_close(model : FsModel, handle : Int32) -> (FsResponse, FsModel) {
   match fs_open_index(model.handles, handle) {
     None => (FsFailed(FsHandleClosed), model)
     Some(_) =>
@@ -489,11 +489,11 @@ fn fs_system_open(system : FsSystem, file : FsFile) -> FsResponse {
     FsFailed(FsBusy)
   } else {
     if fs_file_index(system.files, file) is None {
-      system.files.push({ file, content: "" })
+      system.files.push({ file, content: "", })
     }
     let handle = system.next_handle
     system.next_handle += 1
-    system.handles.push({ handle, file })
+    system.handles.push({ handle, file, })
     FsSucceeded(FsHandle(file, handle))
   }
 }
@@ -501,7 +501,7 @@ fn fs_system_open(system : FsSystem, file : FsFile) -> FsResponse {
 ///|
 fn fs_system_write(
   system : FsSystem,
-  handle : Int,
+  handle : Int32,
   content : String,
 ) -> FsResponse {
   match fs_open_index(system.handles, handle) {
@@ -513,7 +513,8 @@ fn fs_system_write(
             file: system.handles[index].file,
             content,
           }
-        None => system.files.push({ file: system.handles[index].file, content })
+        None =>
+          system.files.push({ file: system.handles[index].file, content, })
       }
       FsSucceeded(FsUnit)
     }
@@ -521,7 +522,7 @@ fn fs_system_write(
 }
 
 ///|
-fn fs_system_close(system : FsSystem, handle : Int) -> FsResponse {
+fn fs_system_close(system : FsSystem, handle : Int32) -> FsResponse {
   match fs_open_index(system.handles, handle) {
     None => FsFailed(FsHandleClosed)
     Some(_) => {
@@ -636,7 +637,7 @@ fn fs_sym_open(
 ///|
 fn fs_sym_write(
   model : FsSymModel,
-  handle : @quickcheck_statemachine.Ref[Int],
+  handle : @quickcheck_statemachine.Ref[Int32],
 ) -> FsSymResponse {
   match handle {
     Symbolic(var_ref) =>
@@ -652,7 +653,7 @@ fn fs_sym_write(
 ///|
 fn fs_sym_close(
   model : FsSymModel,
-  handle : @quickcheck_statemachine.Ref[Int],
+  handle : @quickcheck_statemachine.Ref[Int32],
 ) -> FsSymResponse {
   fs_sym_write(model, handle)
 }
@@ -714,15 +715,15 @@ fn fs_sym_transition(
     (FsSymOpen(file), FsSymSucceeded(FsSymHandle(file_ref, handle))) => {
       let files = model.files.copy()
       if fs_file_index(files, file) is None {
-        files.push({ file, content: "" })
+        files.push({ file, content: "", })
       }
       let file_refs = model.file_refs.copy()
-      file_refs.push({ file_ref, file })
+      file_refs.push({ file_ref, file, })
       let handles = model.handles.copy()
-      handles.push({ handle, file })
+      handles.push({ handle, file, })
       let created_handles = model.created_handles.copy()
       created_handles.push(handle)
-      { dirs: model.dirs, files, file_refs, handles, created_handles }
+      { dirs: model.dirs, files, file_refs, handles, created_handles, }
     }
     (FsSymWrite(Symbolic(handle), content), FsSymSucceeded(FsSymUnit)) =>
       match fs_sym_open_index(model.handles, handle) {
@@ -792,9 +793,9 @@ fn fs_sym_response_vars(
 
 ///|
 fn fs_reify_handle_ref(
-  handle : @quickcheck_statemachine.Ref[Int],
+  handle : @quickcheck_statemachine.Ref[Int32],
   environment : @quickcheck_statemachine.Environment[FsConcreteValue],
-) -> Result[Int, @quickcheck_statemachine.EnvError] {
+) -> Result[Int32, @quickcheck_statemachine.EnvError] {
   match handle {
     Concrete(value) => Ok(value)
     Symbolic(var_ref) =>
@@ -1002,7 +1003,7 @@ fn fs_label(
 ///|
 fn fs_script_spec(
   commands : Array[FsSymCommand],
-  run_command? : (FsCommand, FsSystem) -> FsResponse = run_fs_command,
+  run_command~ : (FsCommand, FsSystem) -> FsResponse = run_fs_command,
 ) -> @quickcheck_statemachine.StateMachine[
   FsSymModel,
   FsModel,
@@ -1013,7 +1014,7 @@ fn fs_script_spec(
   FsConcreteValue,
   FsSystem,
 ] {
-  let cursor : Array[Int] = [0]
+  let cursor : Array[Int32] = [0]
   @quickcheck_statemachine.StateMachine::new(
     init_symbolic_model=fs_empty_sym_model,
     init_concrete_model=fs_empty_model,
@@ -1047,19 +1048,19 @@ fn fs_script_spec(
 }
 
 ///|
-fn symbolic_file(id : Int) -> @quickcheck_statemachine.Ref[FsFile] {
+fn symbolic_file(id : Int32) -> @quickcheck_statemachine.Ref[FsFile] {
   Symbolic({ id, })
 }
 
 ///|
-fn symbolic_handle(id : Int) -> @quickcheck_statemachine.Ref[Int] {
+fn symbolic_handle(id : Int32) -> @quickcheck_statemachine.Ref[Int32] {
   Symbolic({ id, })
 }
 
 ///|
 fn fs_commands_contain_read_file_ref(
   commands : @quickcheck_statemachine.Commands[FsSymCommand, FsSymResponse],
-  id : Int,
+  id : Int32,
 ) -> Bool {
   for entry in commands.commands {
     match entry.command {
