@@ -6,14 +6,14 @@
 // as a normal FIFO array plus a fixed capacity; `QueueSystem` is the mutable
 // circular-buffer implementation.
 struct QueueId {
-  id : Int
+  id : Int32
 } derive(Eq, Debug)
 
 ///|
 struct QueueModel {
   reference : @quickcheck_statemachine.Ref[QueueId]
-  elems : Array[Int]
-  capacity : Int
+  elems : Array[Int32]
+  capacity : Int32
 } derive(Eq, Debug)
 
 ///|
@@ -23,8 +23,8 @@ struct QueueState {
 
 ///|
 enum QueueCommand {
-  QueueNew(Int)
-  QueuePut(@quickcheck_statemachine.Ref[QueueId], Int)
+  QueueNew(Int32)
+  QueuePut(@quickcheck_statemachine.Ref[QueueId], Int32)
   QueueGet(@quickcheck_statemachine.Ref[QueueId])
   QueueSize(@quickcheck_statemachine.Ref[QueueId])
 } derive(Eq, Debug)
@@ -33,8 +33,8 @@ enum QueueCommand {
 enum QueueResponse {
   QueueNewed(@quickcheck_statemachine.Ref[QueueId])
   QueuePutDone
-  QueueGot(Int)
-  QueueSized(Int)
+  QueueGot(Int32)
+  QueueSized(Int32)
 } derive(Eq, Debug)
 
 ///|
@@ -47,9 +47,9 @@ enum QueueBug {
 
 ///|
 struct CircularQueue {
-  slots : Array[Int]
-  mut input : Int
-  mut output : Int
+  slots : Array[Int32]
+  mut input : Int32
+  mut output : Int32
   bug : QueueBug
 } derive(Eq, Debug)
 
@@ -59,7 +59,7 @@ struct QueueSystem {
 } derive(Eq, Debug)
 
 ///|
-fn int_abs(value : Int) -> Int {
+fn int_abs(value : Int32) -> Int32 {
   if value < 0 {
     -value
   } else {
@@ -68,33 +68,33 @@ fn int_abs(value : Int) -> Int {
 }
 
 ///|
-fn CircularQueue::new(capacity : Int, bug : QueueBug) -> CircularQueue {
+fn CircularQueue::new(capacity : Int32, bug : QueueBug) -> CircularQueue {
   let storage_size = match bug {
     QueueCapacityBug => capacity
     QueueNoBug | QueueRawSizeBug | QueueAbsSizeBug => capacity + 1
   }
-  let slots : Array[Int] = []
+  let slots : Array[Int32] = []
   for _ in 0..<storage_size {
     slots.push(0)
   }
-  { slots, input: 0, output: 0, bug }
+  { slots, input: 0, output: 0, bug, }
 }
 
 ///|
-fn CircularQueue::put(self : CircularQueue, item : Int) -> Unit {
+fn CircularQueue::put(self : CircularQueue, item : Int32) -> Unit {
   self.slots[self.input] = item
   self.input = (self.input + 1) % self.slots.length()
 }
 
 ///|
-fn CircularQueue::get(self : CircularQueue) -> Int {
+fn CircularQueue::get(self : CircularQueue) -> Int32 {
   let item = self.slots[self.output]
   self.output = (self.output + 1) % self.slots.length()
   item
 }
 
 ///|
-fn CircularQueue::size(self : CircularQueue) -> Int {
+fn CircularQueue::size(self : CircularQueue) -> Int32 {
   match self.bug {
     QueueRawSizeBug => (self.input - self.output) % self.slots.length()
     QueueAbsSizeBug => int_abs(self.input - self.output) % self.slots.length()
@@ -107,7 +107,7 @@ fn CircularQueue::size(self : CircularQueue) -> Int {
 fn queue_index(
   model : QueueState,
   reference : @quickcheck_statemachine.Ref[QueueId],
-) -> Int? {
+) -> Int32? {
   for index = 0; index < model.queues.length(); {
     if model.queues[index].reference == reference {
       return Some(index)
@@ -178,8 +178,8 @@ fn queue_precondition_without_full_check(
 }
 
 ///|
-fn array_tail(xs : Array[Int]) -> Array[Int] {
-  let tail : Array[Int] = []
+fn array_tail(xs : Array[Int32]) -> Array[Int32] {
+  let tail : Array[Int32] = []
   for i in 1..<xs.length() {
     tail.push(xs[i])
   }
@@ -189,7 +189,7 @@ fn array_tail(xs : Array[Int]) -> Array[Int] {
 ///|
 fn queue_update(
   model : QueueState,
-  index : Int,
+  index : Int32,
   queue : QueueModel,
 ) -> QueueState {
   let queues = model.queues.copy()
@@ -208,7 +208,7 @@ fn queue_transition(
       match response {
         QueueNewed(reference) => {
           let queues = model.queues.copy()
-          queues.push({ reference, elems: [], capacity })
+          queues.push({ reference, elems: [], capacity, })
           { queues, }
         }
         _ => model
@@ -309,7 +309,7 @@ fn queue_postcondition(
 ///|
 fn concrete_queue_index(
   reference : @quickcheck_statemachine.Ref[QueueId],
-) -> Int raise {
+) -> Int32 raise {
   match reference {
     Concrete(queue_id) => queue_id.id
     Symbolic(fresh_var) => fail("unreified queue reference v\{fresh_var.id}")
@@ -324,7 +324,7 @@ fn run_queue_command(
 ) -> QueueResponse raise {
   match command {
     QueueNew(capacity) => {
-      let id = QueueId::{ id: system.queues.length() }
+      let id = QueueId::{ id: system.queues.length(), }
       system.queues.push(CircularQueue::new(capacity, bug))
       QueueNewed(Concrete(id))
     }
@@ -475,7 +475,7 @@ fn queue_shrinker(
 ///|
 fn queue_random_generator(
   model : QueueState,
-  size : Int,
+  size : Int32,
   rng : @splitmix.RandomState,
 ) -> QueueCommand? {
   ignore(size)
@@ -495,9 +495,9 @@ fn queue_random_generator(
 
 ///|
 fn queue_base_spec(
-  generator : (QueueState, Int, @splitmix.RandomState) -> QueueCommand?,
-  bug? : QueueBug = QueueNoBug,
-  precondition? : (QueueState, QueueCommand) -> @quickcheck_statemachine.Logic = queue_precondition,
+  generator : (QueueState, Int32, @splitmix.RandomState) -> QueueCommand?,
+  bug~ : QueueBug = QueueNoBug,
+  precondition~ : (QueueState, QueueCommand) -> @quickcheck_statemachine.Logic = queue_precondition,
 ) -> @quickcheck_statemachine.StateMachine[
   QueueState,
   QueueState,
@@ -509,9 +509,9 @@ fn queue_base_spec(
   QueueSystem,
 ] {
   @quickcheck_statemachine.StateMachine::new(
-    init_symbolic_model=() => { queues: [] },
-    init_concrete_model=() => { queues: [] },
-    init_system=() => { queues: [] },
+    init_symbolic_model=() => { queues: [], },
+    init_concrete_model=() => { queues: [], },
+    init_system=() => { queues: [], },
     generator~,
     mock=queue_mock,
     response_vars=queue_response_vars,
@@ -531,8 +531,8 @@ fn queue_base_spec(
 ///|
 fn queue_script_spec(
   commands : Array[QueueCommand],
-  bug? : QueueBug = QueueNoBug,
-  precondition? : (QueueState, QueueCommand) -> @quickcheck_statemachine.Logic = queue_precondition,
+  bug~ : QueueBug = QueueNoBug,
+  precondition~ : (QueueState, QueueCommand) -> @quickcheck_statemachine.Logic = queue_precondition,
 ) -> @quickcheck_statemachine.StateMachine[
   QueueState,
   QueueState,
@@ -543,7 +543,7 @@ fn queue_script_spec(
   QueueId,
   QueueSystem,
 ] {
-  let cursor : Array[Int] = [0]
+  let cursor : Array[Int32] = [0]
   queue_base_spec(
     (model, size, rng) => {
       ignore(model)
@@ -564,7 +564,7 @@ fn queue_script_spec(
 
 ///|
 fn queue_random_spec(
-  bug? : QueueBug = QueueNoBug,
+  bug~ : QueueBug = QueueNoBug,
 ) -> @quickcheck_statemachine.StateMachine[
   QueueState,
   QueueState,
@@ -579,7 +579,7 @@ fn queue_random_spec(
 }
 
 ///|
-fn queue_symbolic_ref(id : Int) -> @quickcheck_statemachine.Ref[QueueId] {
+fn queue_symbolic_ref(id : Int32) -> @quickcheck_statemachine.Ref[QueueId] {
   Symbolic(@quickcheck_statemachine.Var::{ id, })
 }
 

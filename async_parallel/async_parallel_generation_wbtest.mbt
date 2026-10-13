@@ -4,9 +4,21 @@ enum GenCommand {
 } derive(Eq, Debug)
 
 ///|
+pub extend GenCommand with Eq::{not_equal, equal}
+
+///|
+pub extend GenCommand with Debug::{to_repr}
+
+///|
 enum GenResponse {
   GenUnit
 } derive(Eq, Debug)
+
+///|
+pub extend GenResponse with Eq::{not_equal, equal}
+
+///|
+pub extend GenResponse with Debug::{to_repr}
 
 ///|
 fn gen_config() -> @qsm.RunConfig {
@@ -26,8 +38,8 @@ fn gen_config() -> @qsm.RunConfig {
 
 ///|
 fn gen_spec() -> AsyncStateMachine[
-  Int,
-  Int,
+  Int32,
+  Int32,
   GenCommand,
   GenCommand,
   GenResponse,
@@ -74,16 +86,34 @@ enum DepCommand {
 } derive(Eq, Debug)
 
 ///|
+pub extend DepCommand with Eq::{not_equal, equal}
+
+///|
+pub extend DepCommand with Debug::{to_repr}
+
+///|
 enum DepResponse {
   DepUnit
   DepMade(@qsm.Var)
 } derive(Eq, Debug)
 
 ///|
+pub extend DepResponse with Eq::{not_equal, equal}
+
+///|
+pub extend DepResponse with Debug::{to_repr}
+
+///|
 struct DepModel {
-  step : Int
+  step : Int32
   handles : Array[@qsm.Var]
 } derive(Eq, Debug)
+
+///|
+pub extend DepModel with Eq::{not_equal, equal}
+
+///|
+pub extend DepModel with Debug::{to_repr}
 
 ///|
 fn dep_config() -> @qsm.RunConfig {
@@ -123,7 +153,7 @@ fn dep_spec() -> AsyncStateMachine[
   Unit,
 ] {
   AsyncStateMachine::new(
-    init_symbolic_model=() => { step: 0, handles: [] },
+    init_symbolic_model=() => { step: 0, handles: [], },
     init_concrete_model=() => (),
     init_system=() => (),
     generator=(model, _, _) => {
@@ -155,7 +185,7 @@ fn dep_spec() -> AsyncStateMachine[
         DepMade(variable) => handles.push(variable)
         DepUnit => ()
       }
-      { step: model.step + 1, handles }
+      { step: model.step + 1, handles, }
     },
     transition_concrete=(model, _, _) => model,
     precondition=(model, command) => {
@@ -235,10 +265,22 @@ enum IsoCommand {
 } derive(Eq, Debug)
 
 ///|
+pub extend IsoCommand with Eq::{not_equal, equal}
+
+///|
+pub extend IsoCommand with Debug::{to_repr}
+
+///|
 enum IsoResponse {
   IsoMade(@qsm.Var)
   IsoUnit
 } derive(Eq, Debug)
+
+///|
+pub extend IsoResponse with Eq::{not_equal, equal}
+
+///|
+pub extend IsoResponse with Debug::{to_repr}
 
 ///|
 fn iso_spec() -> AsyncStateMachine[
@@ -271,7 +313,7 @@ fn iso_spec() -> AsyncStateMachine[
     },
     run_command=(command, _) => {
       match command {
-        IsoMake => IsoMade(@qsm.Var::{ id: 0 })
+        IsoMake => IsoMade(@qsm.Var::{ id: 0, })
         IsoUse(_) => IsoUnit
       }
     },
@@ -290,12 +332,12 @@ fn iso_commands(
   response : IsoResponse,
   vars : Array[@qsm.Var],
 ) -> @qsm.Commands[IsoCommand, IsoResponse] {
-  @qsm.Commands::{ commands: [@qsm.Command::{ command, response, vars }] }
+  @qsm.Commands::{ commands: [@qsm.Command::{ command, response, vars, }], }
 }
 
 ///|
 async test "branch environments are isolated until merge" {
-  let variable = @qsm.Var::{ id: 0 }
+  let variable = @qsm.Var::{ id: 0, }
   let base : @qsm.Environment[Unit] = @qsm.Environment::empty()
   let left_events : Array[@qsm.HistoryEvent[IsoCommand, IsoResponse]] = []
   let right_events : Array[@qsm.HistoryEvent[IsoCommand, IsoResponse]] = []

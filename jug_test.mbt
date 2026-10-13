@@ -7,8 +7,8 @@
 // "failure" is reaching a state where the big jug contains exactly 4L; the
 // failing command program is therefore the puzzle solution.
 struct JugModel {
-  big_jug : Int
-  small_jug : Int
+  big_jug : Int32
+  small_jug : Int32
 } derive(Eq, Debug)
 
 ///|
@@ -30,17 +30,17 @@ enum JugResponse {
 ///|
 fn jug_next(model : JugModel, command : JugCommand) -> JugModel {
   match command {
-    JugFillBig => { big_jug: 5, small_jug: model.small_jug }
-    JugFillSmall => { big_jug: model.big_jug, small_jug: 3 }
-    JugEmptyBig => { big_jug: 0, small_jug: model.small_jug }
-    JugEmptySmall => { big_jug: model.big_jug, small_jug: 0 }
+    JugFillBig => { big_jug: 5, small_jug: model.small_jug, }
+    JugFillSmall => { big_jug: model.big_jug, small_jug: 3, }
+    JugEmptyBig => { big_jug: 0, small_jug: model.small_jug, }
+    JugEmptySmall => { big_jug: model.big_jug, small_jug: 0, }
     JugSmallIntoBig => {
       let big_jug = (model.big_jug + model.small_jug).min(5)
-      { big_jug, small_jug: model.small_jug - (big_jug - model.big_jug) }
+      { big_jug, small_jug: model.small_jug - (big_jug - model.big_jug), }
     }
     JugBigIntoSmall => {
       let small_jug = (model.big_jug + model.small_jug).min(3)
-      { big_jug: model.big_jug - (small_jug - model.small_jug), small_jug }
+      { big_jug: model.big_jug - (small_jug - model.small_jug), small_jug, }
     }
   }
 }
@@ -69,7 +69,7 @@ fn jug_name(command : JugCommand) -> String {
 ///|
 fn jug_generator(
   model : JugModel,
-  size : Int,
+  size : Int32,
   rng : @splitmix.RandomState,
 ) -> JugCommand? {
   ignore(model)
@@ -96,8 +96,8 @@ fn jug_search_spec() -> @quickcheck_statemachine.StateMachine[
   Unit,
 ] {
   @quickcheck_statemachine.StateMachine::new(
-    init_symbolic_model=() => { big_jug: 0, small_jug: 0 },
-    init_concrete_model=() => { big_jug: 0, small_jug: 0 },
+    init_symbolic_model=() => { big_jug: 0, small_jug: 0, },
+    init_concrete_model=() => { big_jug: 0, small_jug: 0, },
     init_system=() => (),
     generator=jug_generator,
     mock=(model, command, gen_sym) => {
@@ -141,7 +141,7 @@ fn jug_search_spec() -> @quickcheck_statemachine.StateMachine[
 // fill, empty, and pour actions so the later solution test can rely on
 // `jug_next` as the reference transition relation.
 test "die hard jug model covers alternate commands" {
-  let model = JugModel::{ big_jug: 1, small_jug: 2 }
+  let model = JugModel::{ big_jug: 1, small_jug: 2, }
   let fill_small = jug_next(model, JugFillSmall)
   let empty_big = jug_next(model, JugEmptyBig)
   let small_into_big = jug_next(model, JugSmallIntoBig)

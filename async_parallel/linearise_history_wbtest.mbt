@@ -5,13 +5,25 @@ enum LCommand {
 } derive(Eq, Debug)
 
 ///|
+pub extend LCommand with Eq::{not_equal, equal}
+
+///|
+pub extend LCommand with Debug::{to_repr}
+
+///|
 enum LResponse {
   LUnit
-  LValue(Int)
+  LValue(Int32)
 } derive(Eq, Debug)
 
 ///|
-fn l_expected(model : Int, command : LCommand) -> LResponse {
+pub extend LResponse with Eq::{not_equal, equal}
+
+///|
+pub extend LResponse with Debug::{to_repr}
+
+///|
+fn l_expected(model : Int32, command : LCommand) -> LResponse {
   match command {
     LIncr => LUnit
     LGet => LValue(model)
@@ -19,7 +31,11 @@ fn l_expected(model : Int, command : LCommand) -> LResponse {
 }
 
 ///|
-fn l_transition(model : Int, command : LCommand, response : LResponse) -> Int {
+fn l_transition(
+  model : Int32,
+  command : LCommand,
+  response : LResponse,
+) -> Int32 {
   ignore(response)
   match command {
     LIncr => model + 1
@@ -29,8 +45,8 @@ fn l_transition(model : Int, command : LCommand, response : LResponse) -> Int {
 
 ///|
 fn l_spec() -> AsyncStateMachine[
-  Int,
-  Int,
+  Int32,
+  Int32,
   LCommand,
   LCommand,
   LResponse,
@@ -67,7 +83,7 @@ fn l_history(
 
 ///|
 fn l_inv(
-  id : Int,
+  id : Int32,
   command : LCommand,
 ) -> @qsm.HistoryEvent[LCommand, LResponse] {
   @qsm.Invocation(pid=@qsm.Pid::{ id, }, command~)
@@ -75,7 +91,7 @@ fn l_inv(
 
 ///|
 fn l_resp(
-  id : Int,
+  id : Int32,
   response : LResponse,
 ) -> @qsm.HistoryEvent[LCommand, LResponse] {
   @qsm.Response(pid=@qsm.Pid::{ id, }, response~)

@@ -9,11 +9,23 @@ pub(all) struct Counterexample {
 } derive(Eq, Debug)
 
 ///|
+pub extend Counterexample with Eq::{not_equal, equal}
+
+///|
+pub extend Counterexample with Debug::{to_repr}
+
+///|
 /// Result of evaluating a logical condition with diagnostics preserved.
 pub(all) enum LogicValue {
   Holds
   Fails(Counterexample)
 } derive(Eq, Debug)
+
+///|
+pub extend LogicValue with Eq::{not_equal, equal}
+
+///|
+pub extend LogicValue with Debug::{to_repr}
 
 ///|
 /// Boolean logic tree used by model predicates.
@@ -43,6 +55,12 @@ pub(all) enum Logic {
   // Adds context around a child predicate without changing its truth value.
   Annotate(message~ : String, logic~ : Logic)
 } derive(Eq, Debug)
+
+///|
+pub extend Logic with Eq::{not_equal, equal}
+
+///|
+pub extend Logic with Debug::{to_repr}
 
 ///|
 /// Constructor for an always-true condition.
@@ -152,7 +170,7 @@ fn logic_failure_messages(logic : Logic) -> Array[String] {
 ///|
 /// Converts a failed condition into a structured counterexample.
 pub fn Logic::counterexample(self : Logic) -> Counterexample {
-  { messages: logic_failure_messages(self) }
+  { messages: logic_failure_messages(self), }
 }
 
 ///|

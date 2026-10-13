@@ -8,7 +8,7 @@ pub struct AsyncStateMachine[MSym, MCon, CSym, CCon, RSym, RCon, V, S] {
   init_symbolic_model : () -> MSym
   init_concrete_model : () -> MCon
   init_system : async () -> S
-  generator : (MSym, Int, @splitmix.RandomState) -> CSym?
+  generator : (MSym, Int32, @splitmix.RandomState) -> CSym?
   mock : (MSym, CSym, @qsm.GenSym) -> (RSym, @qsm.GenSym)
   response_vars : (RSym) -> Array[@qsm.Var]
   transition_symbolic : (MSym, CSym, RSym) -> MSym
@@ -36,7 +36,7 @@ pub fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] AsyncStateMachine::new(
   init_symbolic_model~ : () -> MSym,
   init_concrete_model~ : () -> MCon,
   init_system~ : async () -> S,
-  generator~ : (MSym, Int, @splitmix.RandomState) -> CSym?,
+  generator~ : (MSym, Int32, @splitmix.RandomState) -> CSym?,
   mock~ : (MSym, CSym, @qsm.GenSym) -> (RSym, @qsm.GenSym),
   transition_symbolic~ : (MSym, CSym, RSym) -> MSym,
   transition_concrete~ : (MCon, CCon, RCon) -> MCon,
@@ -46,19 +46,19 @@ pub fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] AsyncStateMachine::new(
     @qsm.Environment[V],
     @qsm.BindError,
   ],
-  postcondition? : (MCon, CCon, RCon) -> @qsm.Logic = (_, _, _) => {
+  postcondition~ : (MCon, CCon, RCon) -> @qsm.Logic = (_, _, _) => {
     @qsm.Logic::top()
   },
-  precondition? : (MSym, CSym) -> @qsm.Logic = (_, _) => @qsm.Logic::top(),
-  invariant? : (MCon) -> @qsm.Logic = _ => @qsm.Logic::top(),
-  response_vars? : (RSym) -> Array[@qsm.Var] = _ => [],
-  shrinker? : (MSym, CSym) -> Array[CSym] = (_, _) => [],
-  remap_command? : (CSym, Map[@qsm.Var, @qsm.Var]) -> CSym? = (command, _) => {
+  precondition~ : (MSym, CSym) -> @qsm.Logic = (_, _) => @qsm.Logic::top(),
+  invariant~ : (MCon) -> @qsm.Logic = _ => @qsm.Logic::top(),
+  response_vars~ : (RSym) -> Array[@qsm.Var] = _ => [],
+  shrinker~ : (MSym, CSym) -> Array[CSym] = (_, _) => [],
+  remap_command~ : (CSym, Map[@qsm.Var, @qsm.Var]) -> CSym? = (command, _) => {
     Some(command)
   },
-  cleanup? : async (MCon, S) -> Unit = (_, _) => (),
-  command_name? : (CSym) -> String = _ => "command",
-  label? : (MCon, CCon, RCon) -> Array[String] = (_, _, _) => [],
+  cleanup~ : async (MCon, S) -> Unit = (_, _) => (),
+  command_name~ : (CSym) -> String = _ => "command",
+  label~ : (MCon, CCon, RCon) -> Array[String] = (_, _, _) => [],
 ) -> AsyncStateMachine[MSym, MCon, CSym, CCon, RSym, RCon, V, S] {
   {
     init_symbolic_model,

@@ -12,6 +12,12 @@ pub(all) struct Command[CSym, RSym] {
 } derive(Eq, Debug)
 
 ///|
+pub extend Command with Eq::{not_equal, equal}
+
+///|
+pub extend Command with Debug::{to_repr}
+
+///|
 /// A symbolic command program.
 ///
 /// This is the stable artifact that can be shrunk, formatted, saved, loaded,
@@ -23,14 +29,20 @@ pub(all) struct Commands[CSym, RSym] {
 } derive(Eq, Debug)
 
 ///|
+pub extend Commands with Eq::{not_equal, equal}
+
+///|
+pub extend Commands with Debug::{to_repr}
+
+///|
 /// Constructs an empty command program.
 pub fn[CSym, RSym] Commands::empty() -> Commands[CSym, RSym] {
-  { commands: [] }
+  { commands: [], }
 }
 
 ///|
 /// Returns the number of generated commands.
-pub fn[CSym, RSym] Commands::length(self : Commands[CSym, RSym]) -> Int {
+pub fn[CSym, RSym] Commands::length(self : Commands[CSym, RSym]) -> Int32 {
   self.commands.length()
 }
 
@@ -65,25 +77,31 @@ pub(all) struct RunConfig {
   // Base seed. `check` derives case seeds by adding the case index.
   seed : UInt64
   // Number of independent generated programs to test.
-  cases : Int
+  cases : Int32
   // Maximum length of each generated command program.
-  max_commands : Int
+  max_commands : Int32
   // Size hint passed to the user generator.
-  size : Int
+  size : Int32
   // Number of times generation may retry after a precondition rejects a command.
-  max_tries : Int
+  max_tries : Int32
   // Whether `check` should minimize a failing generated program.
   shrink : Bool
   // Maximum number of accepted shrink steps.
-  max_shrinks : Int
+  max_shrinks : Int32
   // Maximum number of shrink rounds. Each round starts from the current best
   // failing program and searches for one smaller failing candidate.
-  max_shrink_rounds : Int
+  max_shrink_rounds : Int32
   // Semantic coverage labels that must appear in a successful run.
   required_labels : Array[String]
   // Command families that must appear in a successful run.
   required_command_names : Array[String]
 } derive(Eq, Debug)
+
+///|
+pub extend RunConfig with Eq::{not_equal, equal}
+
+///|
+pub extend RunConfig with Debug::{to_repr}
 
 ///|
 /// Conservative defaults suitable for examples and small model tests.
@@ -117,12 +135,18 @@ pub(all) enum GenerationFailure[MSym, CSym, RSym] {
   // usually means the model has reached a terminal state that should return
   // `None`, or the generator is not respecting the current model.
   Deadlock(
-    step_index~ : Int,
+    step_index~ : Int32,
     model~ : MSym,
     commands~ : Commands[CSym, RSym],
     last_precondition~ : Logic?
   )
 } derive(Eq, Debug)
+
+///|
+pub extend GenerationFailure with Eq::{not_equal, equal}
+
+///|
+pub extend GenerationFailure with Debug::{to_repr}
 
 ///|
 /// Complete state-machine specification.
@@ -143,7 +167,7 @@ pub struct StateMachine[MSym, MCon, CSym, CCon, RSym, RCon, V, S] {
   init_system : () -> S raise
   // Proposes the next symbolic command from the current symbolic model.
   // Returning `None` stops generation cleanly.
-  generator : (MSym, Int, @splitmix.RandomState) -> CSym?
+  generator : (MSym, Int32, @splitmix.RandomState) -> CSym?
   // Predicts the symbolic response so generation can advance the model before
   // execution. This is where commands that create resources allocate `Var`s.
   mock : (MSym, CSym, GenSym) -> (RSym, GenSym)
@@ -194,7 +218,7 @@ pub fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] StateMachine::new(
   init_symbolic_model~ : () -> MSym,
   init_concrete_model~ : () -> MCon,
   init_system~ : () -> S raise,
-  generator~ : (MSym, Int, @splitmix.RandomState) -> CSym?,
+  generator~ : (MSym, Int32, @splitmix.RandomState) -> CSym?,
   mock~ : (MSym, CSym, GenSym) -> (RSym, GenSym),
   transition_symbolic~ : (MSym, CSym, RSym) -> MSym,
   transition_concrete~ : (MCon, CCon, RCon) -> MCon,
@@ -204,17 +228,17 @@ pub fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] StateMachine::new(
     Environment[V],
     BindError,
   ],
-  postcondition? : (MCon, CCon, RCon) -> Logic = (_, _, _) => Logic::top(),
-  precondition? : (MSym, CSym) -> Logic = (_, _) => Logic::top(),
-  invariant? : (MCon) -> Logic = _ => Logic::top(),
-  response_vars? : (RSym) -> Array[Var] = _ => [],
-  shrinker? : (MSym, CSym) -> Array[CSym] = (_, _) => [],
-  remap_command? : (CSym, Map[Var, Var]) -> CSym? = (command, _) => {
+  postcondition~ : (MCon, CCon, RCon) -> Logic = (_, _, _) => Logic::top(),
+  precondition~ : (MSym, CSym) -> Logic = (_, _) => Logic::top(),
+  invariant~ : (MCon) -> Logic = _ => Logic::top(),
+  response_vars~ : (RSym) -> Array[Var] = _ => [],
+  shrinker~ : (MSym, CSym) -> Array[CSym] = (_, _) => [],
+  remap_command~ : (CSym, Map[Var, Var]) -> CSym? = (command, _) => {
     Some(command)
   },
-  cleanup? : (MCon, S) -> Unit raise = (_, _) => (),
-  command_name? : (CSym) -> String = _ => "command",
-  label? : (MCon, CCon, RCon) -> Array[String] = (_, _, _) => [],
+  cleanup~ : (MCon, S) -> Unit raise = (_, _) => (),
+  command_name~ : (CSym) -> String = _ => "command",
+  label~ : (MCon, CCon, RCon) -> Array[String] = (_, _, _) => [],
 ) -> StateMachine[MSym, MCon, CSym, CCon, RSym, RCon, V, S] {
   {
     init_symbolic_model,
@@ -278,9 +302,9 @@ priv enum Selection[CSym] {
 fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] select_symbolic_command(
   spec : StateMachine[MSym, MCon, CSym, CCon, RSym, RCon, V, S],
   model : MSym,
-  size : Int,
+  size : Int32,
   rng : @splitmix.RandomState,
-  max_tries : Int,
+  max_tries : Int32,
 ) -> Selection[CSym] {
   for tries = 0, last_precondition = None; tries < max_tries; {
     match (spec.generator)(model, size, rng) {
@@ -308,13 +332,13 @@ fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] select_symbolic_command(
 /// termination.
 pub fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] generate_commands_with_seed(
   spec : StateMachine[MSym, MCon, CSym, CCon, RSym, RCon, V, S],
-  config? : RunConfig = RunConfig::default(),
-  seed? : UInt64 = config.seed,
+  config~ : RunConfig = RunConfig::default(),
+  seed~ : UInt64 = config.seed,
 ) -> Result[Commands[CSym, RSym], GenerationFailure[MSym, CSym, RSym]] {
   match validate_generation_config(config) {
     Some(message) => Err(InvalidGenerationConfig(message))
     None => {
-      let rng = @splitmix.new(seed~)
+      let rng = @splitmix.RandomState(seed~)
       let initial_commands : Commands[CSym, RSym] = Commands::empty()
       for step_index = 0, model = (spec.init_symbolic_model)(), gen_sym = GenSym::new(), commands = initial_commands; step_index <
          config.max_commands; {
@@ -366,7 +390,7 @@ pub fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] generate_commands_with_seed(
 /// Generates one symbolic command program using `config.seed`.
 pub fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] generate_commands(
   spec : StateMachine[MSym, MCon, CSym, CCon, RSym, RCon, V, S],
-  config? : RunConfig = RunConfig::default(),
+  config~ : RunConfig = RunConfig::default(),
 ) -> Result[Commands[CSym, RSym], GenerationFailure[MSym, CSym, RSym]] {
   generate_commands_with_seed(spec, config~)
 }

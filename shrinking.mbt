@@ -1,9 +1,15 @@
 ///|
 /// Number of successful shrink steps and rounds used to minimize a failure.
 pub(all) struct ShrinkStats {
-  shrinks : Int
-  rounds : Int
+  shrinks : Int32
+  rounds : Int32
 } derive(Eq, Debug)
+
+///|
+pub extend ShrinkStats with Eq::{not_equal, equal}
+
+///|
+pub extend ShrinkStats with Debug::{to_repr}
 
 ///|
 // Shrinking may rebuild a response, but it must keep the same number of freshly
@@ -85,7 +91,7 @@ pub fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] shrink_and_validate(
       }
     }
   } nobreak {
-    Some({ commands: rebuilt })
+    Some({ commands: rebuilt, })
   }
 }
 
@@ -93,7 +99,7 @@ pub fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] shrink_and_validate(
 // Builds the "delete one command" candidate used by the first shrink pass.
 fn[CSym, RSym] without_index(
   commands : Commands[CSym, RSym],
-  index : Int,
+  index : Int32,
 ) -> Commands[CSym, RSym] {
   let next : Array[Command[CSym, RSym]] = []
   for i, command in commands.commands {
@@ -101,7 +107,7 @@ fn[CSym, RSym] without_index(
       next.push(command)
     }
   }
-  { commands: next }
+  { commands: next, }
 }
 
 ///|
@@ -109,12 +115,12 @@ fn[CSym, RSym] without_index(
 // second shrink pass.
 fn[CSym, RSym] replace_index(
   commands : Commands[CSym, RSym],
-  index : Int,
+  index : Int32,
   command : Command[CSym, RSym],
 ) -> Commands[CSym, RSym] {
   let next = commands.commands.copy()
   next[index] = command
-  { commands: next }
+  { commands: next, }
 }
 
 ///|

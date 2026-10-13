@@ -16,9 +16,9 @@ test "parallel commands linearise deterministically" {
     vars: [],
   }
   let parallel = @quickcheck_statemachine.ParallelCommands::{
-    prefix: { commands: [first] },
-    left: { commands: [second] },
-    right: { commands: [] },
+    prefix: { commands: [first], },
+    left: { commands: [second], },
+    right: { commands: [], },
   }
   guard @quickcheck_statemachine.linearise(parallel) is Some(commands) else {
     fail("expected deterministic linearization")

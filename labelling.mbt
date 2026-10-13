@@ -13,6 +13,12 @@ pub(all) struct Event[Model, Command, Response] {
 } derive(Eq, Debug)
 
 ///|
+pub extend Event with Eq::{not_equal, equal}
+
+///|
+pub extend Event with Debug::{to_repr}
+
+///|
 /// Callback wrapper for classifying a state-machine event.
 pub(all) struct Labeler[Model, Command, Response] {
   classify : (Event[Model, Command, Response]) -> Array[String]
@@ -61,8 +67,8 @@ pub fn collect_labels(labels : Array[String]) -> Array[String] {
 pub fn[CSym, RSym] command_names(
   commands : Commands[CSym, RSym],
   name : (CSym) -> String,
-) -> Array[(String, Int)] {
-  let counts : Map[String, Int] = Map([])
+) -> Array[(String, Int32)] {
+  let counts : Map[String, Int32] = Map([])
   for command in commands.commands {
     let command_name = name(command.command)
     counts[command_name] = counts.get_or_default(command_name, 0) + 1
@@ -89,7 +95,7 @@ pub fn[CSym, RSym] command_names_in_order(
 ///|
 /// Returns the required command names that did not appear in a run.
 pub fn cover_command_names(
-  seen : Array[(String, Int)],
+  seen : Array[(String, Int32)],
   required : Array[String],
 ) -> Array[String] {
   let missing : Array[String] = []

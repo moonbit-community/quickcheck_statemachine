@@ -1,5 +1,5 @@
 ///|
-fn max_parallel_operations() -> Int {
+fn max_parallel_operations() -> Int32 {
   6
 }
 
@@ -55,21 +55,21 @@ fn missing_required_values(
 ///|
 fn[CSym, RSym] take_commands(
   commands : @qsm.Commands[CSym, RSym],
-  start : Int,
-  end : Int,
+  start : Int32,
+  end : Int32,
 ) -> @qsm.Commands[CSym, RSym] {
   let taken : Array[@qsm.Command[CSym, RSym]] = []
   for index in start..<end {
     taken.push(commands.commands[index])
   }
-  @qsm.Commands::{ commands: taken }
+  @qsm.Commands::{ commands: taken, }
 }
 
 ///|
 fn[CSym, RSym] commands_from_array(
   commands : Array[@qsm.Command[CSym, RSym]],
 ) -> @qsm.Commands[CSym, RSym] {
-  @qsm.Commands::{ commands: commands.copy() }
+  @qsm.Commands::{ commands: commands.copy(), }
 }
 
 ///|
@@ -86,7 +86,7 @@ fn[CSym, RSym] flatten_parallel_commands(
 fn[C, R] history_from_events(
   events : Array[@qsm.HistoryEvent[C, R]],
 ) -> @qsm.History[C, R] {
-  @qsm.History::{ events: events.copy() }
+  @qsm.History::{ events: events.copy(), }
 }
 
 ///|
@@ -98,14 +98,14 @@ fn[C, R] append_history_events(
   for event in events {
     merged.push(event)
   }
-  @qsm.History::{ events: merged }
+  @qsm.History::{ events: merged, }
 }
 
 ///|
 fn[V] copy_environment(
   environment : @qsm.Environment[V],
 ) -> @qsm.Environment[V] {
-  @qsm.Environment::{ bindings: environment.bindings.copy() }
+  @qsm.Environment::{ bindings: environment.bindings.copy(), }
 }
 
 ///|
@@ -133,9 +133,9 @@ priv enum Selection[CSym] {
 fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] select_symbolic_command(
   spec : AsyncStateMachine[MSym, MCon, CSym, CCon, RSym, RCon, V, S],
   model : MSym,
-  size : Int,
+  size : Int32,
   rng : @splitmix.RandomState,
-  max_tries : Int,
+  max_tries : Int32,
 ) -> Selection[CSym] {
   for tries = 0, last_precondition = None; tries < max_tries; {
     match (spec.generator)(model, size, rng) {
@@ -157,13 +157,13 @@ fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] select_symbolic_command(
 ///|
 fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] generate_commands_with_seed_async_spec(
   spec : AsyncStateMachine[MSym, MCon, CSym, CCon, RSym, RCon, V, S],
-  config? : @qsm.RunConfig = @qsm.RunConfig::default(),
-  seed? : UInt64 = config.seed,
+  config~ : @qsm.RunConfig = @qsm.RunConfig::default(),
+  seed~ : UInt64 = config.seed,
 ) -> Result[@qsm.Commands[CSym, RSym], @qsm.GenerationFailure[MSym, CSym, RSym]] {
   match validate_generation_config(config) {
     Some(message) => Err(@qsm.InvalidGenerationConfig(message))
     None => {
-      let rng = @splitmix.new(seed~)
+      let rng = @splitmix.RandomState(seed~)
       let initial_commands : @qsm.Commands[CSym, RSym] = @qsm.Commands::empty()
       for step_index = 0, model = (spec.init_symbolic_model)(), gen_sym = @qsm.GenSym::new(), commands = initial_commands; step_index <
          config.max_commands; {
@@ -211,7 +211,7 @@ fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] generate_commands_with_seed_async_s
 ///|
 fn[CSym, RSym] without_command_index(
   commands : Array[@qsm.Command[CSym, RSym]],
-  index : Int,
+  index : Int32,
 ) -> Array[@qsm.Command[CSym, RSym]] {
   let remaining : Array[@qsm.Command[CSym, RSym]] = []
   for current_index, command in commands {
@@ -341,14 +341,14 @@ fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] split_parallel_commands_after_gener
   let left_len = chunk.length() / 2
   let left = commands_from_array(chunk[:left_len].to_owned())
   let right = commands_from_array(chunk[left_len:].to_owned())
-  @qsm.ParallelCommands::{ prefix, left, right }
+  @qsm.ParallelCommands::{ prefix, left, right, }
 }
 
 ///|
 fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] generate_parallel_commands_async_spec(
   spec : AsyncStateMachine[MSym, MCon, CSym, CCon, RSym, RCon, V, S],
-  config? : @qsm.RunConfig = @qsm.RunConfig::default(),
-  seed? : UInt64 = config.seed,
+  config~ : @qsm.RunConfig = @qsm.RunConfig::default(),
+  seed~ : UInt64 = config.seed,
 ) -> Result[
   @qsm.ParallelCommands[CSym, RSym],
   @qsm.GenerationFailure[MSym, CSym, RSym],
@@ -425,7 +425,7 @@ async fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] run_prefix_async(
           cleanup_model: model,
         })
       Ok(concrete_command) => {
-        let pid = @qsm.Pid::{ id: step_index }
+        let pid = @qsm.Pid::{ id: step_index, }
         let invoked = history.push(
           @qsm.Invocation(pid~, command=concrete_command),
         )
@@ -532,25 +532,25 @@ async fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] run_prefix_async(
       }
     }
   } nobreak {
-    Ok({ model, environment, history, labels })
+    Ok({ model, environment, history, labels, })
   }
 }
 
 ///|
 priv enum BranchFailure[CSym, CCon, RSym, RCon] {
   BranchReifyFailed(
-    local_index~ : Int,
+    local_index~ : Int32,
     symbolic_command~ : CSym,
     error~ : @qsm.EnvError
   )
   BranchExecutionFailed(
-    local_index~ : Int,
+    local_index~ : Int32,
     command~ : CCon,
     symbolic_command~ : CSym,
     message~ : String
   )
   BranchBindFailed(
-    local_index~ : Int,
+    local_index~ : Int32,
     symbolic_response~ : RSym,
     response~ : RCon,
     error~ : @qsm.BindError
@@ -563,7 +563,7 @@ async fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] run_branch_async(
   branch : @qsm.Commands[CSym, RSym],
   base_environment : @qsm.Environment[V],
   system : S,
-  pid_base : Int,
+  pid_base : Int32,
   concurrent_events : Array[@qsm.HistoryEvent[CCon, RCon]],
 ) -> Result[@qsm.Environment[V], BranchFailure[CSym, CCon, RSym, RCon]] {
   for local_index = 0, environment = copy_environment(base_environment); local_index <
@@ -579,7 +579,7 @@ async fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] run_branch_async(
           ),
         )
       Ok(concrete_command) => {
-        let pid = @qsm.Pid::{ id: pid_base + local_index }
+        let pid = @qsm.Pid::{ id: pid_base + local_index, }
         concurrent_events.push(@qsm.Invocation(pid~, command=concrete_command))
         let run_result = try
           (spec.run_command)(concrete_command, system)
@@ -633,7 +633,7 @@ async fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] run_branch_async(
 ///|
 fn[MSym, MCon, CSym, CCon, RSym, RCon] branch_failure_to_run_failure(
   failure : BranchFailure[CSym, CCon, RSym, RCon],
-  step_base : Int,
+  step_base : Int32,
   model_after_prefix : MCon,
   all_commands : @qsm.Commands[CSym, RSym],
   history : @qsm.History[CCon, RCon],
@@ -679,11 +679,11 @@ fn[MSym, MCon, CSym, CCon, RSym, RCon] branch_failure_to_run_failure(
 priv enum LineariseOutcome[MCon] {
   Linearised(model~ : MCon, labels~ : Array[String])
   NotLinearizable(logic~ : @qsm.Logic)
-  BudgetExceeded(operation_count~ : Int, max_operations~ : Int)
+  BudgetExceeded(operation_count~ : Int32, max_operations~ : Int32)
 }
 
 ///|
-fn[C, R] count_invocations(events : Array[@qsm.HistoryEvent[C, R]]) -> Int {
+fn[C, R] count_invocations(events : Array[@qsm.HistoryEvent[C, R]]) -> Int32 {
   let mut count = 0
   for event in events {
     if event is @qsm.Invocation(..) {
@@ -696,7 +696,7 @@ fn[C, R] count_invocations(events : Array[@qsm.HistoryEvent[C, R]]) -> Int {
 ///|
 fn[C, R] opening_invocation_count(
   events : Array[@qsm.HistoryEvent[C, R]],
-) -> Int {
+) -> Int32 {
   for index = 0; index < events.length(); index = index + 1 {
     match events[index] {
       @qsm.Invocation(..) => ()
@@ -710,9 +710,9 @@ fn[C, R] opening_invocation_count(
 ///|
 fn[C, R] find_matching_response(
   events : Array[@qsm.HistoryEvent[C, R]],
-  start : Int,
+  start : Int32,
   pid : @qsm.Pid,
-) -> (Int, R)? {
+) -> (Int32, R)? {
   for index in (start + 1)..<events.length() {
     match events[index] {
       @qsm.Response(pid=response_pid, response~) =>
@@ -728,8 +728,8 @@ fn[C, R] find_matching_response(
 ///|
 fn[C, R] remove_event_pair(
   events : Array[@qsm.HistoryEvent[C, R]],
-  first : Int,
-  second : Int,
+  first : Int32,
+  second : Int32,
 ) -> Array[@qsm.HistoryEvent[C, R]] {
   let remaining : Array[@qsm.HistoryEvent[C, R]] = []
   for index, event in events {
@@ -831,7 +831,7 @@ fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] linearise_history(
   spec : AsyncStateMachine[MSym, MCon, CSym, CCon, RSym, RCon, V, S],
   start_model : MCon,
   history : @qsm.History[CCon, RCon],
-  max_operations : Int,
+  max_operations : Int32,
 ) -> LineariseOutcome[MCon] {
   let operation_count = count_invocations(history.events)
   if operation_count > max_operations {
@@ -853,7 +853,7 @@ fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] linearise_history(
 pub async fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] run_parallel_commands_async(
   spec : AsyncStateMachine[MSym, MCon, CSym, CCon, RSym, RCon, V, S],
   commands : @qsm.ParallelCommands[CSym, RSym],
-  config? : @qsm.RunConfig = @qsm.RunConfig::default(),
+  config~ : @qsm.RunConfig = @qsm.RunConfig::default(),
 ) -> Result[
   @qsm.RunReport[CSym, RSym, CCon, RCon],
   AsyncRunFailure[MSym, MCon, CSym, CCon, RSym, RCon],
@@ -1169,7 +1169,7 @@ pub async fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] run_parallel_commands_asy
 ///|
 pub async fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] check_parallel_async(
   spec : AsyncStateMachine[MSym, MCon, CSym, CCon, RSym, RCon, V, S],
-  config? : @qsm.RunConfig = @qsm.RunConfig::default(),
+  config~ : @qsm.RunConfig = @qsm.RunConfig::default(),
 ) -> Result[
   @qsm.RunReport[CSym, RSym, CCon, RCon],
   AsyncRunFailure[MSym, MCon, CSym, CCon, RSym, RCon],
@@ -1242,7 +1242,7 @@ pub async fn[
   S,
 ] assert_check_parallel_async(
   spec : AsyncStateMachine[MSym, MCon, CSym, CCon, RSym, RCon, V, S],
-  config? : @qsm.RunConfig = @qsm.RunConfig::default(),
+  config~ : @qsm.RunConfig = @qsm.RunConfig::default(),
 ) -> @qsm.RunReport[CSym, RSym, CCon, RCon] {
   match check_parallel_async(spec, config~) {
     Ok(report) => report

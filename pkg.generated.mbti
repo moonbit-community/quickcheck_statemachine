@@ -74,12 +74,18 @@ pub(all) enum BindError {
   BindMessage(String)
   BindVarCountMismatch(expected~ : Int, actual~ : Int)
 } derive(Eq, @debug.Debug)
+pub fn BindError::equal(Self, Self) -> Bool
+pub fn BindError::not_equal(Self, Self) -> Bool
+pub fn BindError::to_repr(Self) -> @debug.Repr
 
 pub(all) struct Command[CSym, RSym] {
   command : CSym
   response : RSym
   vars : Array[Var]
 } derive(Eq, @debug.Debug)
+pub fn[CSym : Eq, RSym : Eq] Command::equal(Self[CSym, RSym], Self[CSym, RSym]) -> Bool
+pub fn[CSym : Eq, RSym : Eq] Command::not_equal(Self[CSym, RSym], Self[CSym, RSym]) -> Bool
+pub fn[CSym : @debug.Debug, RSym : @debug.Debug] Command::to_repr(Self[CSym, RSym]) -> @debug.Repr
 
 pub(all) struct Commands[CSym, RSym] {
   commands : Array[Command[CSym, RSym]]
@@ -87,16 +93,25 @@ pub(all) struct Commands[CSym, RSym] {
 pub fn[CSym, RSym] Commands::append(Self[CSym, RSym], Command[CSym, RSym]) -> Self[CSym, RSym]
 pub fn[CSym, RSym] Commands::concat(Self[CSym, RSym], Self[CSym, RSym]) -> Self[CSym, RSym]
 pub fn[CSym, RSym] Commands::empty() -> Self[CSym, RSym]
+pub fn[CSym : Eq, RSym : Eq] Commands::equal(Self[CSym, RSym], Self[CSym, RSym]) -> Bool
 pub fn[CSym, RSym] Commands::length(Self[CSym, RSym]) -> Int
+pub fn[CSym : Eq, RSym : Eq] Commands::not_equal(Self[CSym, RSym], Self[CSym, RSym]) -> Bool
+pub fn[CSym : @debug.Debug, RSym : @debug.Debug] Commands::to_repr(Self[CSym, RSym]) -> @debug.Repr
 
 pub(all) struct Counterexample {
   messages : Array[String]
 } derive(Eq, @debug.Debug)
+pub fn Counterexample::equal(Self, Self) -> Bool
+pub fn Counterexample::not_equal(Self, Self) -> Bool
+pub fn Counterexample::to_repr(Self) -> @debug.Repr
 
 pub(all) enum EnvError {
   MissingVar(Var)
   DuplicateVar(Var)
 } derive(Eq, @debug.Debug)
+pub fn EnvError::equal(Self, Self) -> Bool
+pub fn EnvError::not_equal(Self, Self) -> Bool
+pub fn EnvError::to_repr(Self) -> @debug.Repr
 
 pub(all) struct Environment[V] {
   bindings : Map[Var, V]
@@ -108,6 +123,7 @@ pub fn[V] Environment::insert(Self[V], Var, V) -> Self[V]
 pub fn[V] Environment::length(Self[V]) -> Int
 pub fn[V] Environment::lookup(Self[V], Var) -> Result[V, EnvError]
 pub fn[V] Environment::merge(Self[V], Self[V]) -> Result[Self[V], EnvError]
+pub fn[V : @debug.Debug] Environment::to_repr(Self[V]) -> @debug.Repr
 
 pub(all) struct Event[Model, Command, Response] {
   before_model : Model
@@ -115,29 +131,44 @@ pub(all) struct Event[Model, Command, Response] {
   response : Response
   after_model : Model
 } derive(Eq, @debug.Debug)
+pub fn[Model : Eq, Command : Eq, Response : Eq] Event::equal(Self[Model, Command, Response], Self[Model, Command, Response]) -> Bool
+pub fn[Model : Eq, Command : Eq, Response : Eq] Event::not_equal(Self[Model, Command, Response], Self[Model, Command, Response]) -> Bool
+pub fn[Model : @debug.Debug, Command : @debug.Debug, Response : @debug.Debug] Event::to_repr(Self[Model, Command, Response]) -> @debug.Repr
 
 pub(all) struct GenSym {
   mut next : Int
 } derive(Eq, @debug.Debug)
+pub fn GenSym::equal(Self, Self) -> Bool
 pub fn GenSym::fresh(Self) -> (Var, Self)
 pub fn GenSym::new() -> Self
+pub fn GenSym::not_equal(Self, Self) -> Bool
+pub fn GenSym::to_repr(Self) -> @debug.Repr
 
 pub(all) enum GenerationFailure[MSym, CSym, RSym] {
   InvalidGenerationConfig(String)
   Deadlock(step_index~ : Int, model~ : MSym, commands~ : Commands[CSym, RSym], last_precondition~ : Logic?)
 } derive(Eq, @debug.Debug)
+pub fn[MSym : Eq, CSym : Eq, RSym : Eq] GenerationFailure::equal(Self[MSym, CSym, RSym], Self[MSym, CSym, RSym]) -> Bool
+pub fn[MSym : Eq, CSym : Eq, RSym : Eq] GenerationFailure::not_equal(Self[MSym, CSym, RSym], Self[MSym, CSym, RSym]) -> Bool
+pub fn[MSym : @debug.Debug, CSym : @debug.Debug, RSym : @debug.Debug] GenerationFailure::to_repr(Self[MSym, CSym, RSym]) -> @debug.Repr
 
 pub(all) struct History[C, R] {
   events : Array[HistoryEvent[C, R]]
 } derive(Eq, @debug.Debug)
 pub fn[C, R] History::empty() -> Self[C, R]
+pub fn[C : Eq, R : Eq] History::equal(Self[C, R], Self[C, R]) -> Bool
+pub fn[C : Eq, R : Eq] History::not_equal(Self[C, R], Self[C, R]) -> Bool
 pub fn[C, R] History::push(Self[C, R], HistoryEvent[C, R]) -> Self[C, R]
+pub fn[C : @debug.Debug, R : @debug.Debug] History::to_repr(Self[C, R]) -> @debug.Repr
 
 pub(all) enum HistoryEvent[C, R] {
   Invocation(pid~ : Pid, command~ : C)
   Response(pid~ : Pid, response~ : R)
   Exception(pid~ : Pid, message~ : String)
 } derive(Eq, @debug.Debug)
+pub fn[C : Eq, R : Eq] HistoryEvent::equal(Self[C, R], Self[C, R]) -> Bool
+pub fn[C : Eq, R : Eq] HistoryEvent::not_equal(Self[C, R], Self[C, R]) -> Bool
+pub fn[C : @debug.Debug, R : @debug.Debug] HistoryEvent::to_repr(Self[C, R]) -> @debug.Repr
 
 pub(all) struct Labeler[Model, Command, Response] {
   classify : (Event[Model, Command, Response]) -> Array[String]
@@ -159,19 +190,28 @@ pub fn Logic::boolean(Bool) -> Self
 pub fn Logic::bot() -> Self
 pub fn Logic::check(Self) -> LogicValue
 pub fn Logic::counterexample(Self) -> Counterexample
+pub fn Logic::equal(Self, Self) -> Bool
 pub fn Logic::eval(Self) -> Bool
+pub fn Logic::not_equal(Self, Self) -> Bool
 pub fn Logic::predicate(name~ : String, value~ : Bool) -> Self
+pub fn Logic::to_repr(Self) -> @debug.Repr
 pub fn Logic::top() -> Self
 
 pub(all) enum LogicValue {
   Holds
   Fails(Counterexample)
 } derive(Eq, @debug.Debug)
+pub fn LogicValue::equal(Self, Self) -> Bool
+pub fn LogicValue::not_equal(Self, Self) -> Bool
+pub fn LogicValue::to_repr(Self) -> @debug.Repr
 
 pub(all) struct NParallelCommands[CSym, RSym] {
   prefix : Commands[CSym, RSym]
   suffixes : Array[Commands[CSym, RSym]]
 } derive(Eq, @debug.Debug)
+pub fn[CSym : Eq, RSym : Eq] NParallelCommands::equal(Self[CSym, RSym], Self[CSym, RSym]) -> Bool
+pub fn[CSym : Eq, RSym : Eq] NParallelCommands::not_equal(Self[CSym, RSym], Self[CSym, RSym]) -> Bool
+pub fn[CSym : @debug.Debug, RSym : @debug.Debug] NParallelCommands::to_repr(Self[CSym, RSym]) -> @debug.Repr
 
 pub(all) struct Operation[C, R] {
   pid : Pid
@@ -179,21 +219,35 @@ pub(all) struct Operation[C, R] {
   response : R?
   exception : String?
 } derive(Eq, @debug.Debug)
+pub fn[C : Eq, R : Eq] Operation::equal(Self[C, R], Self[C, R]) -> Bool
+pub fn[C : Eq, R : Eq] Operation::not_equal(Self[C, R], Self[C, R]) -> Bool
+pub fn[C : @debug.Debug, R : @debug.Debug] Operation::to_repr(Self[C, R]) -> @debug.Repr
 
 pub(all) struct ParallelCommands[CSym, RSym] {
   prefix : Commands[CSym, RSym]
   left : Commands[CSym, RSym]
   right : Commands[CSym, RSym]
 } derive(Eq, @debug.Debug)
+pub fn[CSym : Eq, RSym : Eq] ParallelCommands::equal(Self[CSym, RSym], Self[CSym, RSym]) -> Bool
+pub fn[CSym : Eq, RSym : Eq] ParallelCommands::not_equal(Self[CSym, RSym], Self[CSym, RSym]) -> Bool
+pub fn[CSym : @debug.Debug, RSym : @debug.Debug] ParallelCommands::to_repr(Self[CSym, RSym]) -> @debug.Repr
 
 pub(all) struct Pid {
   id : Int
 } derive(Eq, Hash, @debug.Debug)
+pub fn Pid::equal(Self, Self) -> Bool
+pub fn Pid::hash(Self) -> Int
+pub fn Pid::hash_combine(Self, Hasher) -> Unit
+pub fn Pid::not_equal(Self, Self) -> Bool
+pub fn Pid::to_repr(Self) -> @debug.Repr
 
 pub(all) enum Ref[V] {
   Symbolic(Var)
   Concrete(V)
 } derive(Eq, @debug.Debug)
+pub fn[V : Eq] Ref::equal(Self[V], Self[V]) -> Bool
+pub fn[V : Eq] Ref::not_equal(Self[V], Self[V]) -> Bool
+pub fn[V : @debug.Debug] Ref::to_repr(Self[V]) -> @debug.Repr
 
 pub(all) struct RunConfig {
   seed : UInt64
@@ -208,6 +262,9 @@ pub(all) struct RunConfig {
   required_command_names : Array[String]
 } derive(Eq, @debug.Debug)
 pub fn RunConfig::default() -> Self
+pub fn RunConfig::equal(Self, Self) -> Bool
+pub fn RunConfig::not_equal(Self, Self) -> Bool
+pub fn RunConfig::to_repr(Self) -> @debug.Repr
 pub impl Default for RunConfig
 
 pub(all) enum RunFailure[MSym, MCon, CSym, CCon, RSym, RCon] {
@@ -222,6 +279,9 @@ pub(all) enum RunFailure[MSym, MCon, CSym, CCon, RSym, RCon] {
   CleanupFailed(commands~ : Commands[CSym, RSym], history~ : History[CCon, RCon], message~ : String, shrinks~ : Int, shrink_rounds~ : Int)
   CoverageFailed(commands~ : Commands[CSym, RSym], history~ : History[CCon, RCon], missing_labels~ : Array[String], missing_command_names~ : Array[String], shrinks~ : Int, shrink_rounds~ : Int)
 } derive(Eq, @debug.Debug)
+pub fn[MSym : Eq, MCon : Eq, CSym : Eq, CCon : Eq, RSym : Eq, RCon : Eq] RunFailure::equal(Self[MSym, MCon, CSym, CCon, RSym, RCon], Self[MSym, MCon, CSym, CCon, RSym, RCon]) -> Bool
+pub fn[MSym : Eq, MCon : Eq, CSym : Eq, CCon : Eq, RSym : Eq, RCon : Eq] RunFailure::not_equal(Self[MSym, MCon, CSym, CCon, RSym, RCon], Self[MSym, MCon, CSym, CCon, RSym, RCon]) -> Bool
+pub fn[MSym : @debug.Debug, MCon : @debug.Debug, CSym : @debug.Debug, CCon : @debug.Debug, RSym : @debug.Debug, RCon : @debug.Debug] RunFailure::to_repr(Self[MSym, MCon, CSym, CCon, RSym, RCon]) -> @debug.Repr
 
 pub(all) struct RunReport[CSym, RSym, CCon, RCon] {
   seed : UInt64
@@ -234,11 +294,17 @@ pub(all) struct RunReport[CSym, RSym, CCon, RCon] {
   shrinks : Int
   shrink_rounds : Int
 } derive(Eq, @debug.Debug)
+pub fn[CSym : Eq, RSym : Eq, CCon : Eq, RCon : Eq] RunReport::equal(Self[CSym, RSym, CCon, RCon], Self[CSym, RSym, CCon, RCon]) -> Bool
+pub fn[CSym : Eq, RSym : Eq, CCon : Eq, RCon : Eq] RunReport::not_equal(Self[CSym, RSym, CCon, RCon], Self[CSym, RSym, CCon, RCon]) -> Bool
+pub fn[CSym : @debug.Debug, RSym : @debug.Debug, CCon : @debug.Debug, RCon : @debug.Debug] RunReport::to_repr(Self[CSym, RSym, CCon, RCon]) -> @debug.Repr
 
 pub(all) struct ShrinkStats {
   shrinks : Int
   rounds : Int
 } derive(Eq, @debug.Debug)
+pub fn ShrinkStats::equal(Self, Self) -> Bool
+pub fn ShrinkStats::not_equal(Self, Self) -> Bool
+pub fn ShrinkStats::to_repr(Self) -> @debug.Repr
 
 pub struct StateMachine[MSym, MCon, CSym, CCon, RSym, RCon, V, S] {
   init_symbolic_model : () -> MSym
@@ -266,9 +332,13 @@ pub fn[MSym, MCon, CSym, CCon, RSym, RCon, V, S] StateMachine::new(init_symbolic
 pub(all) struct Var {
   id : Int
 } derive(Eq, Hash, @debug.Debug)
+pub fn Var::equal(Self, Self) -> Bool
+pub fn Var::hash(Self) -> Int
+pub fn Var::hash_combine(Self, Hasher) -> Unit
+pub fn Var::not_equal(Self, Self) -> Bool
+pub fn Var::to_repr(Self) -> @debug.Repr
 pub fn Var::to_string(Self) -> String
 
 // Type aliases
 
 // Traits
-
